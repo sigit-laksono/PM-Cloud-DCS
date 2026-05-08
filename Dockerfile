@@ -10,7 +10,9 @@ RUN apt-get update && apt-get install -y \
     zip \
     unzip \
     git \
-    curl
+    curl \
+    nodejs \
+    npm
 
 # Clear cache
 RUN apt-get clean && rm -rf /var/lib/apt/lists/*
@@ -24,10 +26,21 @@ COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 # Set working directory
 WORKDIR /var/www
 
-# Copy existing application directory permissions
+# Copy composer files first (for Docker cache)
+COPY composer.json composer.lock ./
+RUN composer install --optimize-autoloader --no-dev --no-scripts
+
+# Copy the rest of the application
 COPY --chown=www-data:www-data . /var/www
 
-# Expose port 9000 for PHP-FPM
-EXPOSE 9000
+# Install frontend dependencies and build
+RUN npm ci && npm run build
 
+# Run composer dump-autoload after full source is available
+RUN composer dump-autoload --optimize
+
+# Set permissions
+RUN chown -R www-data:www-data /var/www/storage /var/www/bootstrap/cache
+
+EXPOSE 9000
 CMD ["php-fpm"]
