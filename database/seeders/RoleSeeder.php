@@ -13,6 +13,7 @@ class RoleSeeder extends Seeder
     {
         // Daftar resource Filament
         $resources = [
+            'customer',
             'project',
             'ticket',
             'ticket_priority',
@@ -51,6 +52,7 @@ class RoleSeeder extends Seeder
         // member: hanya view/view_any project, ticket, ticket_priority, ticket_comment, notification, dan update ticket (untuk drag & drop)
         $memberPermissions = Permission::where(function($q) {
             $q->whereIn('name', [
+                'view_customer', 'view_any_customer',
                 'view_project', 'view_any_project',
                 'view_ticket', 'view_any_ticket', 'update_ticket',
                 'view_ticket_priority', 'view_any_ticket_priority',

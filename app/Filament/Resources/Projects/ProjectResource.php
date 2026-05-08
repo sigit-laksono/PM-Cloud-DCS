@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\Projects;
 
 use Filament\Schemas\Schema;
+use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\RichEditor;
 use Filament\Forms\Components\DatePicker;
@@ -13,6 +14,7 @@ use Filament\Forms\Components\DateTimePicker;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Columns\ToggleColumn;
 use Filament\Tables\Columns\ColorColumn;
+use Filament\Tables\Filters\SelectFilter;
 use Filament\Actions\ViewAction;
 use Filament\Actions\EditAction;
 use Filament\Actions\BulkActionGroup;
@@ -26,6 +28,7 @@ use App\Filament\Resources\Projects\Pages\ListProjects;
 use App\Filament\Resources\Projects\Pages\ViewProject;
 use App\Filament\Resources\Projects\Pages\EditProject;
 use App\Filament\Actions\ImportTicketsAction;
+use App\Enums\ProjectStatus;
 use App\Filament\Resources\ProjectResource\Pages;
 use App\Filament\Resources\ProjectResource\RelationManagers;
 use App\Models\Project;
@@ -51,9 +54,18 @@ class ProjectResource extends Resource
     {
         return $schema
             ->components([
+                Select::make('customer_id')
+                    ->relationship('customer', 'name')
+                    ->searchable()
+                    ->nullable()
+                    ->preload(),
                 TextInput::make('name')
                     ->required()
                     ->maxLength(255),
+                Select::make('project_status')
+                    ->options(ProjectStatus::class)
+                    ->default(ProjectStatus::Running->value)
+                    ->required(),
                 RichEditor::make('description')
                     ->columnSpanFull()
                     ->fileAttachmentsDisk('public')
@@ -115,8 +127,14 @@ class ProjectResource extends Resource
                     ->label('')
                     ->width('40px')
                     ->default('#6B7280'),
+                TextColumn::make('customer.name')
+                    ->label('Customer')
+                    ->searchable(),
                 TextColumn::make('name')
                     ->searchable(),
+                TextColumn::make('project_status')
+                    ->label('Status')
+                    ->badge(),
                 TextColumn::make('ticket_prefix')
                     ->searchable(),
                 TextColumn::make('progress_percentage')
@@ -180,6 +198,16 @@ class ProjectResource extends Resource
                     ->dateTime()
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
+            ])
+            ->filters([
+                SelectFilter::make('project_status')
+                    ->options(ProjectStatus::class)
+                    ->label('Project Status'),
+                SelectFilter::make('customer_id')
+                    ->relationship('customer', 'name')
+                    ->label('Customer')
+                    ->searchable()
+                    ->preload(),
             ])
             ->recordActions([
                 ViewAction::make(),

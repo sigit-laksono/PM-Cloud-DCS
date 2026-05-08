@@ -1,0 +1,42 @@
+<?php
+
+declare(strict_types=1);
+
+namespace Database\Factories;
+
+use App\Models\Customer;
+use Illuminate\Database\Eloquent\Factories\Factory;
+
+/**
+ * @extends \Illuminate\Database\Eloquent\Factories\Factory<\App\Models\Customer>
+ */
+class CustomerFactory extends Factory
+{
+    protected $model = Customer::class;
+
+    /**
+     * Define the model's default state.
+     *
+     * @return array<string, mixed>
+     */
+    public function definition(): array
+    {
+        return [
+            'name' => fake()->company(),
+            'code' => strtoupper(fake()->unique()->lexify('??????')),
+            'pic_name' => fake()->name(),
+            'pic_contact' => fake()->phoneNumber(),
+            'is_active' => true,
+        ];
+    }
+
+    /**
+     * Indicate that the customer is inactive.
+     */
+    public function inactive(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'is_active' => false,
+        ]);
+    }
+}

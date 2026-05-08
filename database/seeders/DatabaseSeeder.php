@@ -22,5 +22,6 @@ class DatabaseSeeder extends Seeder
 
         // Jalankan RoleSeeder
         $this->call(RoleSeeder::class);
+        $this->call(CustomerSeeder::class);
     }
 }

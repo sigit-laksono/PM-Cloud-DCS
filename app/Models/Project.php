@@ -2,8 +2,10 @@
 
 namespace App\Models;
 
+use App\Enums\ProjectStatus;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
@@ -18,15 +20,18 @@ class Project extends Model
         'description',
         'ticket_prefix',
         'color',
+        'project_status',
         'start_date',
         'end_date',
         'pinned_date',
+        'customer_id',
     ];
 
     protected $casts = [
         'start_date' => 'date',
         'end_date' => 'date',
         'pinned_date' => 'datetime',
+        'project_status' => ProjectStatus::class,
     ];
 
     public function getIsPinnedAttribute(): bool
@@ -42,6 +47,11 @@ class Project extends Model
     public function unpin(): void
     {
         $this->update(['pinned_date' => null]);
+    }
+
+    public function customer(): BelongsTo
+    {
+        return $this->belongsTo(Customer::class);
     }
 
     public function ticketStatuses(): HasMany

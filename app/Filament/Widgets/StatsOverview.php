@@ -2,6 +2,7 @@
 
 namespace App\Filament\Widgets;
 
+use App\Enums\ProjectStatus;
 use App\Models\Project;
 use App\Models\Ticket;
 use App\Models\User;
@@ -40,11 +41,23 @@ class StatsOverview extends BaseWidget
             ->join('ticket_users', 'tickets.id', '=', 'ticket_users.ticket_id')
             ->where('ticket_users.user_id', auth()->id())
             ->count();
+        $managedServices = Project::where('project_status', ProjectStatus::Managed)->count();
+        $activeProjects = Project::where('project_status', ProjectStatus::Running)->count();
 
         return [
             Stat::make('Total Projects', $totalProjects)
                 ->description('Active projects in the system')
                 ->descriptionIcon('heroicon-m-rectangle-stack')
+                ->color('primary'),
+
+            Stat::make('Project Aktif', $activeProjects)
+                ->description('Projects currently running')
+                ->descriptionIcon('heroicon-m-play-circle')
+                ->color('info'),
+
+            Stat::make('Managed Services', $managedServices)
+                ->description('Ongoing managed services')
+                ->descriptionIcon('heroicon-m-cog-6-tooth')
                 ->color('primary'),
 
             Stat::make('Total Tickets', $totalTickets)
