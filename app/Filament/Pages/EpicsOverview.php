@@ -124,13 +124,20 @@ class EpicsOverview extends Page
     {
         $user = auth()->user();
 
+        $allowedStatuses = [
+            \App\Enums\ProjectStatus::Poc,
+            \App\Enums\ProjectStatus::Running,
+        ];
+
         if ($user->hasRole('super_admin')) {
-            $this->availableProjects = Project::orderByRaw('pinned_date IS NULL')
+            $this->availableProjects = Project::whereIn('project_status', $allowedStatuses)
+                ->orderByRaw('pinned_date IS NULL')
                 ->orderBy('pinned_date', 'desc')
                 ->orderBy('name')
                 ->get();
         } else {
             $this->availableProjects = $user->projects()
+                ->whereIn('project_status', $allowedStatuses)
                 ->orderByRaw('pinned_date IS NULL')
                 ->orderBy('pinned_date', 'desc')
                 ->orderBy('name')

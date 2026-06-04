@@ -212,7 +212,11 @@ class ProjectResource extends Resource
                 SelectFilter::make('project_status')
                     ->options(ProjectStatus::class)
                     ->label('Project Status')
-                    ->multiple(),
+                    ->multiple()
+                    ->default([
+                        ProjectStatus::Poc->value,
+                        ProjectStatus::Running->value,
+                    ]),
                 SelectFilter::make('customer_id')
                     ->relationship('customer', 'name')
                     ->label('Customer')

@@ -24,6 +24,15 @@ class TicketStatusesRelationManager extends RelationManager
 {
     protected static string $relationship = 'ticketStatuses';
 
+    /**
+     * Keep this relation manager writable on the View (ViewRecord) page so
+     * users can manage ticket statuses directly from the Project Detail page.
+     */
+    public function isReadOnly(): bool
+    {
+        return false;
+    }
+
     public static function getBadge(Model $ownerRecord, string $pageClass): ?string
     {
         return $ownerRecord->ticket_statuses_count ?? $ownerRecord->ticketStatuses()->count();

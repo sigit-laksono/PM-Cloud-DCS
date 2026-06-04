@@ -9,6 +9,22 @@ class CreateProject extends CreateRecord
 {
     protected static string $resource = ProjectResource::class;
 
+    /**
+     * Pre-fill customer_id from query string when creating a project from
+     * the Customer Detail page (e.g. /projects/create?customer_id=123).
+     *
+     * @param  array<string, mixed>  $data
+     * @return array<string, mixed>
+     */
+    protected function mutateFormDataBeforeFill(array $data): array
+    {
+        if ($customerId = request()->query('customer_id')) {
+            $data['customer_id'] = $customerId;
+        }
+
+        return $data;
+    }
+
     protected function afterCreate(): void
     {
         $createDefaultStatuses = $this->data['create_default_statuses'] ?? true;

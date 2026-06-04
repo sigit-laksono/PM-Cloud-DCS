@@ -38,6 +38,16 @@ class TicketsRelationManager extends RelationManager
 {
     protected static string $relationship = 'tickets';
 
+    /**
+     * Keep this relation manager writable on the View (ViewRecord) page so
+     * users can create/edit tickets directly from the Project Detail page
+     * without needing to enter Edit mode.
+     */
+    public function isReadOnly(): bool
+    {
+        return false;
+    }
+
     public static function getBadge(Model $ownerRecord, string $pageClass): ?string
     {
         return $ownerRecord->tickets_count ?? $ownerRecord->tickets()->count();

@@ -20,6 +20,15 @@ class EpicsRelationManager extends RelationManager
 {
     protected static string $relationship = 'epics';
 
+    /**
+     * Keep this relation manager writable on the View (ViewRecord) page so
+     * users can create/edit epics directly from the Project Detail page.
+     */
+    public function isReadOnly(): bool
+    {
+        return false;
+    }
+
     public static function getBadge(Model $ownerRecord, string $pageClass): ?string
     {
         return $ownerRecord->epics_count ?? $ownerRecord->epics()->count();

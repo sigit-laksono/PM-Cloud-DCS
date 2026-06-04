@@ -11,6 +11,22 @@ class CreateManagedService extends CreateRecord
 {
     protected static string $resource = ManagedServiceResource::class;
 
+    /**
+     * Pre-fill customer_id from query string when creating a managed service
+     * from the Customer Detail page (e.g. /managed-services/create?customer_id=123).
+     *
+     * @param  array<string, mixed>  $data
+     * @return array<string, mixed>
+     */
+    protected function mutateFormDataBeforeFill(array $data): array
+    {
+        if ($customerId = request()->query('customer_id')) {
+            $data['customer_id'] = $customerId;
+        }
+
+        return $data;
+    }
+
     protected function afterCreate(): void
     {
         $createDefaultStatuses = $this->data['create_default_statuses'] ?? true;

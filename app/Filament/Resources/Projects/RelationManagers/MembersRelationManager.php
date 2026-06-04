@@ -22,6 +22,15 @@ class MembersRelationManager extends RelationManager
 {
     protected static string $relationship = 'members';
 
+    /**
+     * Keep this relation manager writable on the View (ViewRecord) page so
+     * users can attach/detach members directly from the Project Detail page.
+     */
+    public function isReadOnly(): bool
+    {
+        return false;
+    }
+
     public static function getBadge(Model $ownerRecord, string $pageClass): ?string
     {
         return $ownerRecord->members_count ?? $ownerRecord->members()->count();

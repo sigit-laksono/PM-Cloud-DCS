@@ -125,8 +125,13 @@
                                                 {{ $project->ticket_prefix }}
                                             </span>
                                             
+                                            @php
+                                                $detailUrl = $project->project_status === \App\Enums\ProjectStatus::Managed
+                                                    ? \App\Filament\Resources\ManagedServices\ManagedServiceResource::getUrl('view', ['record' => $project->id])
+                                                    : \App\Filament\Resources\Projects\ProjectResource::getUrl('view', ['record' => $project->id]);
+                                            @endphp
                                             <a
-                                                href="{{ \App\Filament\Resources\Projects\ProjectResource::getUrl('view', ['record' => $project->id]) }}"
+                                                href="{{ $detailUrl }}"
                                                 target="_blank"
                                                 class="text-primary-600 hover:text-primary-500"
                                                 title="View Project"

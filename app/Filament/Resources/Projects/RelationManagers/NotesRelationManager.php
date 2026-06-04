@@ -28,6 +28,15 @@ class NotesRelationManager extends RelationManager
 
     protected static ?string $pluralModelLabel = 'Notes';
 
+    /**
+     * Keep this relation manager writable on the View (ViewRecord) page so
+     * users can manage project notes directly from the Project Detail page.
+     */
+    public function isReadOnly(): bool
+    {
+        return false;
+    }
+
     // ─── Authorization ───────────────────────────────────────────────────────
     // Bypass Shield's per-model policy check for ProjectNote (no policy exists).
     // Access is scoped to users who can already view the parent project.

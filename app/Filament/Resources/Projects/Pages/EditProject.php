@@ -13,6 +13,19 @@ class EditProject extends EditRecord
 {
     protected static string $resource = ProjectResource::class;
 
+    /**
+     * Hide relation managers (Tickets, Epics, Members, etc.) on the Edit page.
+     * Relation managers are exclusively shown on the View page (Project Detail)
+     * so the Edit page stays focused on editing the core project information
+     * (name, PIC, dates, status, etc.).
+     *
+     * @return array<int, mixed>
+     */
+    protected function getAllRelationManagers(): array
+    {
+        return [];
+    }
+
     protected function getHeaderActions(): array
     {
         return [

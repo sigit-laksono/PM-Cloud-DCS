@@ -295,9 +295,24 @@ class TicketResource extends Resource
                             ? Project::pluck('id')
                             : $user->projects()->pluck('projects.id');
 
+                        // Group by name so duplicates across projects collapse into one option.
                         return TicketStatus::whereIn('project_id', $projectIds)
-                            ->pluck('name', 'id')
+                            ->orderBy('name')
+                            ->pluck('name', 'name')
+                            ->unique()
                             ->toArray();
+                    })
+                    ->default(['Backlog', 'To Do', 'In Progress', 'Review'])
+                    ->query(function (Builder $query, array $data) {
+                        $values = $data['values'] ?? [];
+
+                        if (empty($values)) {
+                            return $query;
+                        }
+
+                        return $query->whereHas('status', function (Builder $q) use ($values) {
+                            $q->whereIn('name', $values);
+                        });
                     })
                     ->searchable()
                     ->preload()
