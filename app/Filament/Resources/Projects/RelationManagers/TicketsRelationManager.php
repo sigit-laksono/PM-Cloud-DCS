@@ -2,39 +2,37 @@
 
 namespace App\Filament\Resources\Projects\RelationManagers;
 
-use Filament\Schemas\Schema;
-use Filament\Forms\Components\TextInput;
-use Filament\Forms\Components\Select;
+use App\Exports\TicketTemplateExport;
+use App\Imports\TicketsImport;
+use App\Models\Epic;
+use App\Models\TicketPriority;
+use App\Models\TicketStatus;
+use Exception;
+use Filament\Actions\Action;
+use Filament\Actions\BulkAction;
+use Filament\Actions\BulkActionGroup;
+use Filament\Actions\CreateAction;
+use Filament\Actions\DeleteAction;
+use Filament\Actions\DeleteBulkAction;
+use Filament\Actions\EditAction;
 use Filament\Forms\Components\DatePicker;
+use Filament\Forms\Components\FileUpload;
+use Filament\Forms\Components\Radio;
 use Filament\Forms\Components\RichEditor;
+use Filament\Forms\Components\Select;
+use Filament\Forms\Components\TextInput;
+use Filament\Notifications\Notification;
+use Filament\Resources\RelationManagers\RelationManager;
+use Filament\Schemas\Components\Actions;
+use Filament\Schemas\Components\Section;
+use Filament\Schemas\Schema;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
-use Filament\Actions\CreateAction;
-use Filament\Actions\Action;
-use Filament\Schemas\Components\Section;
-use Filament\Schemas\Components\Actions;
-use Exception;
-use Filament\Actions\EditAction;
-use Filament\Actions\DeleteAction;
-use Filament\Actions\BulkActionGroup;
-use Filament\Actions\DeleteBulkAction;
-use Filament\Actions\BulkAction;
-use Filament\Forms\Components\Radio;
-use App\Models\Epic;
-use App\Models\TicketStatus;
-use App\Models\TicketPriority;
-use Filament\Forms;
-use Filament\Resources\RelationManagers\RelationManager;
-use Filament\Tables;
 use Filament\Tables\Table;
-use Filament\Notifications\Notification;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Model;
-use App\Imports\TicketsImport;
-use App\Exports\TicketTemplateExport;
-use Filament\Forms\Components\FileUpload;
-use Maatwebsite\Excel\Facades\Excel;
 use Illuminate\Support\Facades\Storage;
+use Maatwebsite\Excel\Facades\Excel;
 
 class TicketsRelationManager extends RelationManager
 {
@@ -58,7 +56,7 @@ class TicketsRelationManager extends RelationManager
                     ->required()
                     ->maxLength(255)
                     ->label('Ticket Name'),
-                
+
                 Select::make('ticket_status_id')
                     ->label('Status')
                     ->options(function () use ($projectId) {
@@ -69,7 +67,7 @@ class TicketsRelationManager extends RelationManager
                     ->default($defaultStatusId)
                     ->required()
                     ->searchable(),
-                
+
                 Select::make('epic_id')
                     ->label('Epic')
                     ->options(function () use ($projectId) {
@@ -78,7 +76,7 @@ class TicketsRelationManager extends RelationManager
                             ->toArray();
                     })
                     ->nullable(),
-                
+
                 // UPDATED: Multi-user assignment
                 Select::make('assignees')
                     ->label('Assignees')
@@ -88,6 +86,7 @@ class TicketsRelationManager extends RelationManager
                         titleAttribute: 'name',
                         modifyQueryUsing: function ($query) {
                             $projectId = $this->getOwnerRecord()->id;
+
                             // Only show project members
                             return $query->whereHas('projects', function ($query) use ($projectId) {
                                 $query->where('projects.id', $projectId);
@@ -100,24 +99,24 @@ class TicketsRelationManager extends RelationManager
                         if ($record && $record->exists) {
                             return $record->assignees->pluck('id')->toArray();
                         }
-                        
+
                         // Auto-assign current user if they're a project member
                         $project = $this->getOwnerRecord();
                         $isCurrentUserMember = $project->members()->where('users.id', auth()->id())->exists();
-                        
+
                         return $isCurrentUserMember ? [auth()->id()] : [];
                     })
                     ->helperText('Select multiple users to assign this ticket to. Only project members can be assigned.'),
-                
+
                 DatePicker::make('start_date')
                     ->label('Start Date')
                     ->nullable(),
-                
+
                 DatePicker::make('due_date')
                     ->label('Due Date')
                     ->nullable()
                     ->afterOrEqual('start_date'),
-                
+
                 RichEditor::make('description')
                     ->columnSpanFull()
                     ->fileAttachmentsDisk('public')
@@ -144,11 +143,11 @@ class TicketsRelationManager extends RelationManager
                     ->searchable()
                     ->sortable()
                     ->copyable(),
-                
+
                 TextColumn::make('name')
                     ->searchable()
                     ->sortable(),
-                
+
                 TextColumn::make('status.name')
                     ->badge()
                     ->color(fn ($record) => match ($record->status?->name) {
@@ -159,7 +158,7 @@ class TicketsRelationManager extends RelationManager
                         default => 'gray',
                     })
                     ->sortable(),
-                
+
                 TextColumn::make('epic.name')
                     ->label('Epic')
                     ->badge()
@@ -167,27 +166,27 @@ class TicketsRelationManager extends RelationManager
                     ->placeholder('No Epic')
                     ->sortable()
                     ->searchable(),
-                
+
                 TextColumn::make('assignees.name')
                     ->label('Assignees')
                     ->badge()
                     ->separator(',')
                     ->expandableLimitedList()
                     ->searchable(),
-                
+
                 TextColumn::make('creator.name')
                     ->label('Created By')
                     ->sortable()
                     ->toggleable(),
-                
+
                 TextColumn::make('start_date')
                     ->date()
                     ->sortable(),
-                
+
                 TextColumn::make('due_date')
                     ->date()
                     ->sortable(),
-                
+
                 TextColumn::make('created_at')
                     ->dateTime()
                     ->sortable()
@@ -203,7 +202,7 @@ class TicketsRelationManager extends RelationManager
                             ->pluck('name', 'id')
                             ->toArray();
                     }),
-                
+
                 // UPDATED: Filter by assignees
                 SelectFilter::make('assignees')
                     ->label('Assignee')
@@ -211,19 +210,20 @@ class TicketsRelationManager extends RelationManager
                     ->multiple()
                     ->searchable()
                     ->preload(),
-                
+
                 // Filter by creator
                 SelectFilter::make('created_by')
                     ->label('Created By')
                     ->relationship('creator', 'name')
                     ->searchable()
                     ->preload(),
-                
+
                 // Filter by epic
                 SelectFilter::make('epic_id')
                     ->label('Epic')
                     ->options(function () {
                         $projectId = $this->getOwnerRecord()->id;
+
                         return Epic::where('project_id', $projectId)
                             ->pluck('name', 'id')
                             ->toArray();
@@ -235,9 +235,10 @@ class TicketsRelationManager extends RelationManager
                         // Set project_id and created_by
                         $data['project_id'] = $this->getOwnerRecord()->id;
                         $data['created_by'] = auth()->id();
+
                         return $data;
                     }),
-                
+
                 // NEW: Import from Excel action
                 Action::make('import_tickets')
                     ->label('Import from Excel')
@@ -254,15 +255,15 @@ class TicketsRelationManager extends RelationManager
                                         ->color('gray')
                                         ->action(function (RelationManager $livewire) {
                                             $project = $livewire->getOwnerRecord();
-                                            $filename = 'ticket-import-template-' . str($project->name)->slug() . '.xlsx';
-                                            
+                                            $filename = 'ticket-import-template-'.str($project->name)->slug().'.xlsx';
+
                                             return Excel::download(
                                                 new TicketTemplateExport($project),
                                                 $filename
                                             );
-                                        })
+                                        }),
                                 ])->fullWidth(),
-                                
+
                                 FileUpload::make('excel_file')
                                     ->label('Excel File')
                                     ->helperText('Upload the Excel file with ticket data. Make sure to use the template format above.')
@@ -277,25 +278,25 @@ class TicketsRelationManager extends RelationManager
                     ->action(function (array $data, RelationManager $livewire) {
                         $project = $livewire->getOwnerRecord();
                         $filePath = Storage::disk('local')->path($data['excel_file']);
-                        
+
                         try {
                             $import = new TicketsImport($project);
                             Excel::import($import, $filePath);
-                            
+
                             $importedCount = $import->getImportedCount();
                             $errors = $import->errors();
                             $failures = $import->failures();
-                            
+
                             // Clean up uploaded file
                             Storage::disk('local')->delete($data['excel_file']);
-                            
+
                             if ($importedCount > 0) {
                                 $message = "Successfully imported {$importedCount} ticket(s) to project '{$project->name}'.";
-                                
+
                                 if (count($errors) > 0 || count($failures) > 0) {
-                                    $message .= " Some rows had errors and were skipped.";
+                                    $message .= ' Some rows had errors and were skipped.';
                                 }
-                                
+
                                 Notification::make()
                                     ->title('Import Completed')
                                     ->body($message)
@@ -305,11 +306,11 @@ class TicketsRelationManager extends RelationManager
                                 // Get actual errors and failures
                                 $importErrors = $import->errors();
                                 $importFailures = $import->failures();
-                                
-                                $errorMessage = "No tickets were imported.";
-                                
+
+                                $errorMessage = 'No tickets were imported.';
+
                                 // Show actual validation failures if they exist
-                                if (!empty($importFailures)) {
+                                if (! empty($importFailures)) {
                                     $errorMessage .= "\n\n**Validation Errors:**";
                                     foreach ($importFailures as $failure) {
                                         $row = $failure->row();
@@ -317,15 +318,15 @@ class TicketsRelationManager extends RelationManager
                                         $errorMessage .= "\n• Row {$row}: {$errors}";
                                     }
                                 }
-                                
+
                                 // Show actual processing errors if they exist
-                                if (!empty($importErrors)) {
+                                if (! empty($importErrors)) {
                                     $errorMessage .= "\n\n**Processing Errors:**";
                                     foreach ($importErrors as $error) {
                                         $errorMessage .= "\n• {$error}";
                                     }
                                 }
-                                
+
                                 // Only show generic help if no specific errors are available
                                 if (empty($importFailures) && empty($importErrors)) {
                                     $errorMessage .= "\n\n**Possible causes:**";
@@ -334,7 +335,7 @@ class TicketsRelationManager extends RelationManager
                                     $errorMessage .= "\n• File format is incorrect";
                                     $errorMessage .= "\n\nPlease check your file and try again.";
                                 }
-                                
+
                                 Notification::make()
                                     ->title('Import Failed')
                                     ->body($errorMessage)
@@ -345,10 +346,10 @@ class TicketsRelationManager extends RelationManager
                         } catch (Exception $e) {
                             // Clean up uploaded file on error
                             Storage::disk('local')->delete($data['excel_file']);
-                            
+
                             Notification::make()
                                 ->title('Import Error')
-                                ->body('An error occurred during import: ' . $e->getMessage())
+                                ->body('An error occurred during import: '.$e->getMessage())
                                 ->danger()
                                 ->send();
                         }
@@ -361,7 +362,7 @@ class TicketsRelationManager extends RelationManager
             ->toolbarActions([
                 BulkActionGroup::make([
                     DeleteBulkAction::make(),
-                    
+
                     BulkAction::make('updateStatus')
                         ->label('Update Status')
                         ->icon('heroicon-o-arrow-path')
@@ -383,14 +384,14 @@ class TicketsRelationManager extends RelationManager
                                     'ticket_status_id' => $data['ticket_status_id'],
                                 ]);
                             }
-                            
+
                             Notification::make()
                                 ->success()
                                 ->title('Status updated')
-                                ->body(count($records) . ' tickets have been updated.')
+                                ->body(count($records).' tickets have been updated.')
                                 ->send();
                         }),
-                    
+
                     // NEW: Bulk assign users
                     BulkAction::make('assignUsers')
                         ->label('Assign Users')
@@ -408,7 +409,7 @@ class TicketsRelationManager extends RelationManager
                                 ->searchable()
                                 ->preload()
                                 ->required(),
-                            
+
                             Radio::make('assignment_mode')
                                 ->label('Assignment Mode')
                                 ->options([
@@ -426,11 +427,11 @@ class TicketsRelationManager extends RelationManager
                                     $record->assignees()->syncWithoutDetaching($data['assignees']);
                                 }
                             }
-                            
+
                             Notification::make()
                                 ->success()
                                 ->title('Users assigned')
-                                ->body(count($records) . ' tickets have been updated with new assignees.')
+                                ->body(count($records).' tickets have been updated with new assignees.')
                                 ->send();
                         }),
                     BulkAction::make('updatePriority')
@@ -449,7 +450,7 @@ class TicketsRelationManager extends RelationManager
                                 ]);
                             }
                         }),
-                    
+
                     BulkAction::make('assignToEpic')
                         ->label('Assign to Epic')
                         ->icon('heroicon-o-bookmark')
@@ -458,6 +459,7 @@ class TicketsRelationManager extends RelationManager
                                 ->label('Epic')
                                 ->options(function (RelationManager $livewire) {
                                     $projectId = $livewire->getOwnerRecord()->id;
+
                                     return Epic::where('project_id', $projectId)
                                         ->pluck('name', 'id')
                                         ->toArray();
@@ -473,15 +475,15 @@ class TicketsRelationManager extends RelationManager
                                     'epic_id' => $data['epic_id'],
                                 ]);
                             }
-                            
-                            $epicName = $data['epic_id'] 
-                                ? Epic::find($data['epic_id'])->name 
+
+                            $epicName = $data['epic_id']
+                                ? Epic::find($data['epic_id'])->name
                                 : 'No Epic';
-                            
+
                             Notification::make()
                                 ->success()
                                 ->title('Epic assignment updated')
-                                ->body(count($records) . ' tickets have been assigned to: ' . $epicName)
+                                ->body(count($records).' tickets have been assigned to: '.$epicName)
                                 ->send();
                         }),
                 ]),

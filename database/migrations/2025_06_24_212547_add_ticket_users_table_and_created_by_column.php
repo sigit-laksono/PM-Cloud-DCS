@@ -20,7 +20,7 @@ return new class extends Migration
             $table->foreignId('ticket_id')->constrained()->onDelete('cascade');
             $table->foreignId('user_id')->constrained()->onDelete('cascade');
             $table->timestamps();
-            
+
             // Prevent duplicate assignments
             $table->unique(['ticket_id', 'user_id']);
         });
@@ -32,7 +32,7 @@ return new class extends Migration
     public function down(): void
     {
         Schema::dropIfExists('ticket_users');
-        
+
         Schema::table('tickets', function (Blueprint $table) {
             $table->dropForeign(['created_by']);
             $table->dropColumn('created_by');

@@ -2,13 +2,12 @@
 
 namespace App\Filament\Resources\Tickets\Pages;
 
-use Filament\Actions\ViewAction;
-use Filament\Actions\DeleteAction;
 use App\Filament\Resources\Tickets\TicketResource;
 use App\Models\Project;
-use Filament\Actions;
-use Filament\Resources\Pages\EditRecord;
+use Filament\Actions\DeleteAction;
+use Filament\Actions\ViewAction;
 use Filament\Notifications\Notification;
+use Filament\Resources\Pages\EditRecord;
 
 class EditTicket extends EditRecord
 {
@@ -25,28 +24,28 @@ class EditTicket extends EditRecord
     protected function mutateFormDataBeforeSave(array $data): array
     {
         // Handle assignees validation before saving
-        if (!empty($data['assignees']) && !empty($data['project_id'])) {
+        if (! empty($data['assignees']) && ! empty($data['project_id'])) {
             $project = Project::find($data['project_id']);
-            
+
             if ($project) {
                 $validAssignees = [];
                 $invalidAssignees = [];
-                
+
                 foreach ($data['assignees'] as $userId) {
                     $isMember = $project->members()->where('users.id', $userId)->exists();
-                    
+
                     if ($isMember) {
                         $validAssignees[] = $userId;
                     } else {
                         $invalidAssignees[] = $userId;
                     }
                 }
-                
+
                 // Update data with only valid assignees
                 $data['assignees'] = $validAssignees;
-                
+
                 // Show warning if some users were invalid
-                if (!empty($invalidAssignees)) {
+                if (! empty($invalidAssignees)) {
                     Notification::make()
                         ->warning()
                         ->title('Some assignees removed')

@@ -22,7 +22,7 @@ class CustomerProjectKanbanWidget extends Widget
 
     public function getProjectsByStatus(): array
     {
-        if (!$this->record) {
+        if (! $this->record) {
             return [];
         }
 
@@ -44,13 +44,13 @@ class CustomerProjectKanbanWidget extends Widget
     {
         $status = ProjectStatus::tryFrom($newStatus);
 
-        if (!$status) {
+        if (! $status) {
             return;
         }
 
         $project = Project::find($projectId);
 
-        if (!$project || $project->customer_id !== $this->record?->id) {
+        if (! $project || $project->customer_id !== $this->record?->id) {
             return;
         }
 

@@ -12,9 +12,9 @@ class Setting extends Model
     public static function getUserValue(string $key, mixed $default = null, ?int $userId = null): mixed
     {
         try {
-            $model = new static();
+            $model = new static;
 
-            if (!Schema::hasTable($model->getTable())) {
+            if (! Schema::hasTable($model->getTable())) {
                 return $default;
             }
 
@@ -57,6 +57,7 @@ class Setting extends Model
             ],
         );
     }
+
     public static function setValue(string $key, mixed $value, ?string $group = null): void
     {
         static::query()->updateOrCreate(

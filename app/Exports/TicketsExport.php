@@ -2,20 +2,21 @@
 
 namespace App\Exports;
 
-use PhpOffice\PhpSpreadsheet\Style\Fill;
-use App\Models\Ticket;
+use Illuminate\Support\Collection;
 use Maatwebsite\Excel\Concerns\FromCollection;
+use Maatwebsite\Excel\Concerns\ShouldAutoSize;
 use Maatwebsite\Excel\Concerns\WithHeadings;
 use Maatwebsite\Excel\Concerns\WithMapping;
 use Maatwebsite\Excel\Concerns\WithStyles;
-use Maatwebsite\Excel\Concerns\ShouldAutoSize;
+use PhpOffice\PhpSpreadsheet\Style\Fill;
 use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
-use Illuminate\Support\Collection;
 
-class TicketsExport implements FromCollection, WithHeadings, WithMapping, WithStyles, ShouldAutoSize
+class TicketsExport implements FromCollection, ShouldAutoSize, WithHeadings, WithMapping, WithStyles
 {
     protected $tickets;
+
     protected $selectedColumns;
+
     protected $availableColumns = [
         'uuid' => 'Ticket ID',
         'name' => 'Title',
@@ -49,6 +50,7 @@ class TicketsExport implements FromCollection, WithHeadings, WithMapping, WithSt
                 $headings[] = $this->availableColumns[$column];
             }
         }
+
         return $headings;
     }
 
@@ -71,7 +73,7 @@ class TicketsExport implements FromCollection, WithHeadings, WithMapping, WithSt
                     $row[] = $ticket->status?->name ?? 'No Status';
                     break;
                 case 'assignee':
-                    $row[] = $ticket->assignees->pluck('name')->implode(', ');;
+                    $row[] = $ticket->assignees->pluck('name')->implode(', ');
                     break;
                 case 'project':
                     $row[] = $ticket->project?->name ?? 'No Project';

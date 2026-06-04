@@ -2,30 +2,29 @@
 
 namespace App\Filament\Widgets;
 
+use App\Models\TicketHistory;
+use BezhanSalleh\FilamentShield\Traits\HasWidgetShield;
+use Carbon\Carbon;
+use Filament\Actions\Action;
+use Filament\Forms\Components\DatePicker;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\Filter;
-use Filament\Forms\Components\DatePicker;
-use Carbon\Carbon;
 use Filament\Tables\Filters\SelectFilter;
-use Filament\Actions\Action;
-use App\Models\TicketHistory;
-use Filament\Tables;
 use Filament\Tables\Table;
 use Filament\Widgets\TableWidget as BaseWidget;
-use BezhanSalleh\FilamentShield\Traits\HasWidgetShield;
 
 class RecentActivityTable extends BaseWidget
 {
     use HasWidgetShield;
 
     protected static ?string $heading = 'Recent Activities';
-    
-    protected int | string | array $columnSpan = [
+
+    protected int|string|array $columnSpan = [
         'md' => 2,
         'xl' => 1,
     ];
-    
-    protected static ?int $sort = 7;
+
+    protected static ?int $sort = 9;
 
     public function table(Table $table): Table
     {
@@ -33,7 +32,7 @@ class RecentActivityTable extends BaseWidget
             ->query(
                 TicketHistory::query()
                     ->with(['ticket.project', 'user', 'status'])
-                    ->when(!auth()->user()->hasRole('super_admin'), function ($query) {
+                    ->when(! auth()->user()->hasRole('super_admin'), function ($query) {
                         $query->whereHas('ticket.project.members', function ($subQuery) {
                             $subQuery->where('user_id', auth()->id());
                         });
@@ -45,17 +44,19 @@ class RecentActivityTable extends BaseWidget
                     ->label('Activity')
                     ->state(function (TicketHistory $record): string {
                         $ticketName = $record->ticket->name ?? 'Unknown ticket';
-                        $trimmedName = strlen($ticketName) > 40 ? substr($ticketName, 0, 40) . '...' : $ticketName;
+                        $trimmedName = strlen($ticketName) > 40 ? substr($ticketName, 0, 40).'...' : $ticketName;
                         $userName = $record->user->name ?? 'Unknown user';
+
                         return "<span class='text-primary-600 font-medium'>{$userName}</span> changed \"{$trimmedName}\"";
                     })
                     ->description(function (TicketHistory $record): string {
                         $isToday = $record->created_at->isToday();
-                        $time = $isToday 
+                        $time = $isToday
                             ? $record->created_at->format('H:i')
                             : $record->created_at->format('M d, H:i');
                         $project = $record->ticket->project->name ?? 'No Project';
                         $uuid = $record->ticket->uuid ?? '';
+
                         return "{$time} • {$uuid} • {$project}";
                     })
                     ->html()
@@ -65,9 +66,9 @@ class RecentActivityTable extends BaseWidget
                     ->label('Status')
                     ->badge()
                     ->alignEnd()
-                    ->color(fn (TicketHistory $record): string => match($record->status->name ?? '') {
+                    ->color(fn (TicketHistory $record): string => match ($record->status->name ?? '') {
                         'To Do', 'Backlog' => 'gray',
-                        'In Progress', 'Doing' => 'warning', 
+                        'In Progress', 'Doing' => 'warning',
                         'Review', 'Testing' => 'info',
                         'Done', 'Completed' => 'success',
                         'Cancelled', 'Blocked' => 'danger',
@@ -97,11 +98,12 @@ class RecentActivityTable extends BaseWidget
                     ->indicateUsing(function (array $data): array {
                         $indicators = [];
                         if ($data['start_date'] ?? null) {
-                            $indicators[] = 'From: ' . Carbon::parse($data['start_date'])->format('M d, Y');
+                            $indicators[] = 'From: '.Carbon::parse($data['start_date'])->format('M d, Y');
                         }
                         if ($data['end_date'] ?? null) {
-                            $indicators[] = 'To: ' . Carbon::parse($data['end_date'])->format('M d, Y');
+                            $indicators[] = 'To: '.Carbon::parse($data['end_date'])->format('M d, Y');
                         }
+
                         return $indicators;
                     }),
 
@@ -122,13 +124,11 @@ class RecentActivityTable extends BaseWidget
                     ->icon('heroicon-o-arrow-top-right-on-square')
                     ->size('sm')
                     ->tooltip('Open Ticket')
-                    ->url(fn (TicketHistory $record): string => 
-                        route('filament.admin.resources.tickets.view', $record->ticket)
+                    ->url(fn (TicketHistory $record): string => route('filament.admin.resources.tickets.view', $record->ticket)
                     )
-                    ->openUrlInNewTab()
+                    ->openUrlInNewTab(),
             ])
-            ->recordUrl(fn (TicketHistory $record) => 
-                route('filament.admin.resources.tickets.view', $record->ticket)
+            ->recordUrl(fn (TicketHistory $record) => route('filament.admin.resources.tickets.view', $record->ticket)
             )
             ->paginated([5, 25, 50])
             ->poll('30s')

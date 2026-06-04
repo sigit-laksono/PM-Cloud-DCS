@@ -2,17 +2,15 @@
 
 namespace App\Exports;
 
-use PhpOffice\PhpSpreadsheet\Style\Fill;
 use App\Models\Project;
-use App\Models\TicketStatus;
 use App\Models\TicketPriority;
-use App\Models\Epic;
-use Maatwebsite\Excel\Concerns\WithMultipleSheets;
 use Maatwebsite\Excel\Concerns\FromArray;
-use Maatwebsite\Excel\Concerns\WithHeadings;
-use Maatwebsite\Excel\Concerns\WithStyles;
 use Maatwebsite\Excel\Concerns\ShouldAutoSize;
+use Maatwebsite\Excel\Concerns\WithHeadings;
+use Maatwebsite\Excel\Concerns\WithMultipleSheets;
+use Maatwebsite\Excel\Concerns\WithStyles;
 use Maatwebsite\Excel\Concerns\WithTitle;
+use PhpOffice\PhpSpreadsheet\Style\Fill;
 use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
 
 class TicketTemplateExport implements WithMultipleSheets
@@ -34,7 +32,7 @@ class TicketTemplateExport implements WithMultipleSheets
     }
 }
 
-class TicketTemplateSheet implements FromArray, WithHeadings, WithStyles, ShouldAutoSize, WithTitle
+class TicketTemplateSheet implements FromArray, ShouldAutoSize, WithHeadings, WithStyles, WithTitle
 {
     protected $project;
 
@@ -54,7 +52,7 @@ class TicketTemplateSheet implements FromArray, WithHeadings, WithStyles, Should
             'Title',
             'Description',
             'Status',
-            'Priority', 
+            'Priority',
             'Epic',
             'Assignees Comma Separated Emails',
             'Start Date YYYY-MM-DD',
@@ -105,7 +103,7 @@ class TicketTemplateSheet implements FromArray, WithHeadings, WithStyles, Should
     }
 }
 
-class ProjectMembersSheet implements FromArray, WithHeadings, WithStyles, ShouldAutoSize, WithTitle
+class ProjectMembersSheet implements FromArray, ShouldAutoSize, WithHeadings, WithStyles, WithTitle
 {
     protected $project;
 
@@ -169,7 +167,7 @@ class ProjectMembersSheet implements FromArray, WithHeadings, WithStyles, Should
     }
 }
 
-class ReferenceDataSheet implements FromArray, WithHeadings, WithStyles, ShouldAutoSize, WithTitle
+class ReferenceDataSheet implements FromArray, ShouldAutoSize, WithHeadings, WithStyles, WithTitle
 {
     protected $project;
 

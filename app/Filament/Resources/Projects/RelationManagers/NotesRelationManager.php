@@ -2,26 +2,21 @@
 
 namespace App\Filament\Resources\Projects\RelationManagers;
 
-use Filament\Schemas\Schema;
-use Filament\Forms\Components\Hidden;
-use Filament\Tables\Filters\Filter;
-use Filament\Actions\CreateAction;
-use Filament\Actions\ViewAction;
-use Filament\Actions\EditAction;
-use Filament\Actions\DeleteAction;
 use Filament\Actions\BulkActionGroup;
+use Filament\Actions\CreateAction;
+use Filament\Actions\DeleteAction;
 use Filament\Actions\DeleteBulkAction;
-use App\Models\ProjectNote;
-use Filament\Forms;
+use Filament\Actions\EditAction;
+use Filament\Actions\ViewAction;
+use Filament\Forms\Components\DatePicker;
+use Filament\Forms\Components\RichEditor;
+use Filament\Forms\Components\TextInput;
 use Filament\Resources\RelationManagers\RelationManager;
-use Filament\Tables;
-use Filament\Tables\Table;
+use Filament\Schemas\Schema;
 use Filament\Support\Enums\FontWeight;
 use Filament\Tables\Columns\TextColumn;
-use Filament\Forms\Components\TextInput;
-use Filament\Forms\Components\RichEditor;
-use Filament\Forms\Components\DatePicker;
-use Filament\Actions\StaticAction;
+use Filament\Tables\Filters\Filter;
+use Filament\Tables\Table;
 
 class NotesRelationManager extends RelationManager
 {
@@ -33,6 +28,37 @@ class NotesRelationManager extends RelationManager
 
     protected static ?string $pluralModelLabel = 'Notes';
 
+    // ─── Authorization ───────────────────────────────────────────────────────
+    // Bypass Shield's per-model policy check for ProjectNote (no policy exists).
+    // Access is scoped to users who can already view the parent project.
+
+    public function canViewAny(): bool
+    {
+        return true;
+    }
+
+    public function canCreate(): bool
+    {
+        return true;
+    }
+
+    public function canEdit($record): bool
+    {
+        $user = auth()->user();
+
+        // Super admin or the note creator can edit
+        return $user->hasRole('super_admin') || $record->created_by === $user->id;
+    }
+
+    public function canDelete($record): bool
+    {
+        $user = auth()->user();
+
+        return $user->hasRole('super_admin') || $record->created_by === $user->id;
+    }
+
+    // ─── Form ────────────────────────────────────────────────────────────────
+
     public function form(Schema $schema): Schema
     {
         return $schema
@@ -41,12 +67,14 @@ class NotesRelationManager extends RelationManager
                     ->required()
                     ->maxLength(255)
                     ->columnSpanFull(),
-                
+
                 DatePicker::make('note_date')
                     ->label('Note Date')
                     ->default(now())
+                    ->native(false)
+                    ->displayFormat('d/m/Y')
                     ->required(),
-                
+
                 RichEditor::make('content')
                     ->required()
                     ->columnSpanFull()
@@ -69,12 +97,11 @@ class NotesRelationManager extends RelationManager
                         'underline',
                         'undo',
                     ])
-                    ->helperText('Write your meeting summary or project notes here with rich formatting.'),
-                
-                Hidden::make('created_by')
-                    ->default(auth()->id()),
+                    ->helperText('Write your meeting summary or project notes here.'),
             ]);
     }
+
+    // ─── Table ───────────────────────────────────────────────────────────────
 
     public function table(Table $table): Table
     {
@@ -85,17 +112,17 @@ class NotesRelationManager extends RelationManager
                     ->searchable()
                     ->sortable()
                     ->weight(FontWeight::Medium),
-                
+
                 TextColumn::make('note_date')
-                    ->date('M d, Y')
+                    ->date('d/m/Y')
                     ->sortable(),
-                
+
                 TextColumn::make('creator.name')
                     ->label('Created by')
                     ->sortable(),
-                
+
                 TextColumn::make('created_at')
-                    ->dateTime('M d, Y H:i')
+                    ->dateTime('d/m/Y H:i')
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
@@ -110,7 +137,11 @@ class NotesRelationManager extends RelationManager
                     ->label('Add Note')
                     ->modalWidth('2xl')
                     ->closeModalByClickingAway(false)
-                    ,
+                    ->mutateFormDataUsing(function (array $data): array {
+                        $data['created_by'] = auth()->id();
+
+                        return $data;
+                    }),
             ])
             ->recordActions([
                 ViewAction::make()

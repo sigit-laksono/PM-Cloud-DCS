@@ -3,13 +3,13 @@
 namespace App\Providers;
 
 use App\Filament\Resources\TicketResource\Pages\EditCommentModal;
-use Illuminate\Support\ServiceProvider;
-use Livewire\Livewire;
 use BezhanSalleh\FilamentShield\Facades\FilamentShield;
 use Filament\Pages\BasePage as Page;
 use Filament\Resources\Resource;
 use Filament\Widgets\Widget;
+use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Str;
+use Livewire\Livewire;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -29,8 +29,8 @@ class AppServiceProvider extends ServiceProvider
         Livewire::component('edit-comment-modal', EditCommentModal::class);
         FilamentShield::buildPermissionKeyUsing(
             function (string $entity, string $affix, string $subject, string $case, string $separator) {
-                return match(true) {
-                    # if `configurePermissionIdentifierUsing()` was used previously, then this needs to be adjusted accordingly
+                return match (true) {
+                    // if `configurePermissionIdentifierUsing()` was used previously, then this needs to be adjusted accordingly
                     is_subclass_of($entity, Resource::class) => Str::of($affix)
                         ->snake()
                         ->append('_')
@@ -49,7 +49,7 @@ class AppServiceProvider extends ServiceProvider
                     is_subclass_of($entity, Widget::class) => Str::of('widget_')
                         ->append(class_basename($entity))
                         ->toString()
-                    };
+                };
             });
     }
 }

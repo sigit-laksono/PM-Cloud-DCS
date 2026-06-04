@@ -3,23 +3,24 @@
 namespace App\Livewire;
 
 use App\Models\Ticket;
-use Livewire\Component;
-use Filament\Schemas\Schema;
-use Filament\Forms\Contracts\HasForms;
-use Filament\Actions\Contracts\HasActions;
-use Filament\Notifications\Notification;
-use Filament\Forms\Components\RichEditor;
-use Filament\Forms\Components\FileUpload;
-use Filament\Forms\Concerns\InteractsWithForms;
 use Filament\Actions\Concerns\InteractsWithActions;
+use Filament\Actions\Contracts\HasActions;
+use Filament\Forms\Components\RichEditor;
+use Filament\Forms\Concerns\InteractsWithForms;
+use Filament\Forms\Contracts\HasForms;
+use Filament\Notifications\Notification;
+use Filament\Schemas\Schema;
+use Livewire\Component;
 
-class TicketCommentForm extends Component implements HasForms, HasActions
+class TicketCommentForm extends Component implements HasActions, HasForms
 {
-    use InteractsWithForms;
     use InteractsWithActions;
+    use InteractsWithForms;
 
     public Ticket $ticket;
+
     public $newComment = '';
+
     public function form(Schema $schema): Schema
     {
         return $schema
@@ -42,7 +43,7 @@ class TicketCommentForm extends Component implements HasForms, HasActions
 
         $this->ticket->comments()->create([
             'user_id' => auth()->id(),
-            'comment' => $data['newComment']
+            'comment' => $data['newComment'],
         ]);
 
         auth()->user()->notifications()

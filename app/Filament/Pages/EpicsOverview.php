@@ -4,6 +4,10 @@ namespace App\Filament\Pages;
 
 use App\Models\Epic;
 use App\Models\Project;
+use Filament\Actions\Action;
+use Filament\Forms\Components\DatePicker;
+use Filament\Forms\Components\RichEditor;
+use Filament\Forms\Components\TextInput;
 use Filament\Notifications\Notification;
 use Filament\Pages\Page;
 use Illuminate\Support\Collection;
@@ -12,11 +16,16 @@ use Livewire\Attributes\On;
 class EpicsOverview extends Page
 {
     protected static string|\BackedEnum|null $navigationIcon = 'heroicon-o-flag';
+
     protected string $view = 'filament.pages.epics-overview';
+
     protected static string|\UnitEnum|null $navigationGroup = 'Project Management';
+
     protected static ?string $navigationLabel = 'Epics';
+
     protected static ?string $title = 'Epics Overview';
-    protected static ?int $navigationSort = 7;
+
+    protected static ?int $navigationSort = 5;
 
     public function getSubheading(): ?string
     {
@@ -35,13 +44,70 @@ class EpicsOverview extends Page
 
     public string $searchProject = '';
 
+    protected function getHeaderActions(): array
+    {
+        return [
+            Action::make('createEpic')
+                ->label('New Epic')
+                ->icon('heroicon-o-plus')
+                ->visible(fn (): bool => $this->selectedProjectId !== null)
+                ->form([
+                    TextInput::make('name')
+                        ->label('Epic Name')
+                        ->required()
+                        ->maxLength(255),
+                    TextInput::make('sort_order')
+                        ->label('Sort Order')
+                        ->numeric()
+                        ->default(0)
+                        ->helperText('Lower numbers appear first'),
+                    DatePicker::make('start_date')
+                        ->label('Start Date')
+                        ->native(false)
+                        ->displayFormat('d/m/Y')
+                        ->nullable(),
+                    DatePicker::make('end_date')
+                        ->label('End Date')
+                        ->native(false)
+                        ->displayFormat('d/m/Y')
+                        ->afterOrEqual('start_date')
+                        ->nullable(),
+                    RichEditor::make('description')
+                        ->label('Description')
+                        ->columnSpanFull()
+                        ->fileAttachmentsDisk('public')
+                        ->fileAttachmentsDirectory('attachments')
+                        ->fileAttachmentsVisibility('public')
+                        ->nullable(),
+                ])
+                ->action(function (array $data): void {
+                    Epic::create([
+                        'project_id' => $this->selectedProjectId,
+                        'name'        => $data['name'],
+                        'sort_order'  => $data['sort_order'] ?? 0,
+                        'start_date'  => $data['start_date'] ?? null,
+                        'end_date'    => $data['end_date'] ?? null,
+                        'description' => $data['description'] ?? null,
+                    ]);
+
+                    Notification::make()
+                        ->title('Epic created successfully')
+                        ->success()
+                        ->send();
+
+                    $this->loadEpics();
+                    $this->expandedEpics = $this->epics->pluck('id')->toArray();
+                }),
+        ];
+    }
+
     public function mount($project_id = null): void
     {
         $this->loadAvailableProjects();
 
         if ($project_id && $this->availableProjects->contains('id', $project_id)) {
             $this->selectedProjectId = (int) $project_id;
-        } elseif ($project_id && !$this->availableProjects->contains('id', $project_id)) {
+        } elseif ($project_id && ! $this->availableProjects->contains('id', $project_id)) {
             Notification::make()
                 ->title('Project Not Found')
                 ->body('The selected project was not found or you do not have access to it.')
@@ -179,7 +245,7 @@ class EpicsOverview extends Page
             return implode(', ', $names);
         }
 
-        return $names[0] . ', ' . $names[1] . ' +' . (count($names) - 2) . ' more';
+        return $names[0].', '.$names[1].' +'.(count($names) - 2).' more';
     }
 
     #[On('epic-created')]

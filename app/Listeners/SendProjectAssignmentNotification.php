@@ -2,9 +2,9 @@
 
 namespace App\Listeners;
 
-use Exception;
 use App\Events\ProjectMemberAttached;
 use App\Services\NotificationService;
+use Exception;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Support\Facades\Log;
@@ -26,7 +26,7 @@ class SendProjectAssignmentNotification implements ShouldQueue
                 $event->attachedBy
             );
         } catch (Exception $e) {
-            Log::error('Failed to process project assignment notification: ' . $e->getMessage(), [
+            Log::error('Failed to process project assignment notification: '.$e->getMessage(), [
                 'project_id' => $event->project->id,
                 'user_id' => $event->user->id,
             ]);

@@ -2,42 +2,51 @@
 
 namespace App\Filament\Pages;
 
-use Exception;
-use Log;
 use App\Models\Project;
 use App\Models\Ticket;
 use Auth;
 use Carbon\Carbon;
-use Filament\Pages\Page;
-use Filament\Notifications\Notification;
-use Illuminate\Support\Collection;
+use Exception;
 use Filament\Forms\Concerns\InteractsWithForms;
 use Filament\Forms\Contracts\HasForms;
+use Filament\Notifications\Notification;
+use Filament\Pages\Page;
+use Illuminate\Support\Collection;
+use Log;
 
 class TicketTimeline extends Page implements HasForms
 {
     use InteractsWithForms;
 
     protected static string|\BackedEnum|null $navigationIcon = 'heroicon-o-calendar';
+
     protected static ?string $navigationLabel = 'Ticket Timeline';
+
     protected static ?string $title = 'Ticket Timeline';
-    protected static ?int $navigationSort = 6;
+
+    protected static ?int $navigationSort = 8;
+
     protected string $view = 'filament.pages.ticket-timeline';
-    protected static string|\UnitEnum|null $navigationGroup = 'Project Management';
+
+    protected static string|\UnitEnum|null $navigationGroup = 'Analytics';
+
     protected static ?string $slug = 'ticket-timeline/{project_id?}';
 
     public function getSubheading(): ?string
     {
         return 'View project tickets in Gantt chart timeline';
     }
+
     public ?string $projectId = null;
+
     public Collection $projects;
+
     public ?Project $selectedProject = null;
 
     public string $searchProject = '';
 
     protected $listeners = [
-        'refreshData' => '$refresh'
+        'refreshData' => '$refresh',
     ];
 
     public function mount($project_id = null): void
@@ -63,7 +72,7 @@ class TicketTimeline extends Page implements HasForms
                 $this->selectedProject = Project::find($project_id);
             }
         } catch (Exception $e) {
-            Log::error('Error in TicketTimeline mount: ' . $e->getMessage());
+            Log::error('Error in TicketTimeline mount: '.$e->getMessage());
 
             Notification::make()
                 ->title('Error loading page')
@@ -122,7 +131,7 @@ class TicketTimeline extends Page implements HasForms
 
     public function getTicketsProperty(): Collection
     {
-        if (!$this->projectId) {
+        if (! $this->projectId) {
             return collect();
         }
 
@@ -136,7 +145,7 @@ class TicketTimeline extends Page implements HasForms
 
     public function getGanttDataProperty(): array
     {
-        if (!$this->selectedProject) {
+        if (! $this->selectedProject) {
             return ['data' => [], 'links' => []];
         }
 
@@ -150,7 +159,7 @@ class TicketTimeline extends Page implements HasForms
             $now = Carbon::now();
 
             foreach ($tickets as $ticket) {
-                if (!$ticket->due_date) {
+                if (! $ticket->due_date) {
                     continue;
                 }
 
@@ -178,36 +187,38 @@ class TicketTimeline extends Page implements HasForms
                         'color' => $isOverdue ? '#ef4444' : ($ticket->status->color ?? '#3b82f6'),
                         'textColor' => '#ffffff',
                         'status' => $ticket->status->name ?? 'Unknown',
-                        'is_overdue' => $isOverdue
+                        'is_overdue' => $isOverdue,
                     ];
 
                     $ganttTasks[] = $taskData;
 
                 } catch (Exception $e) {
-                    Log::error('Error processing ticket ' . $ticket->id . ': ' . $e->getMessage());
+                    Log::error('Error processing ticket '.$ticket->id.': '.$e->getMessage());
+
                     continue;
                 }
             }
 
             return [
                 'data' => $ganttTasks,
-                'links' => []
+                'links' => [],
             ];
 
         } catch (Exception $e) {
-            Log::error('Error generating gantt data: ' . $e->getMessage());
+            Log::error('Error generating gantt data: '.$e->getMessage());
+
             return ['data' => [], 'links' => []];
         }
     }
 
     private function truncateName($name, $length = 50): string
     {
-        return strlen($name) > $length ? substr($name, 0, $length) . '...' : $name;
+        return strlen($name) > $length ? substr($name, 0, $length).'...' : $name;
     }
 
     private function getSimpleProgress($statusName): int
     {
-        if (!$this->selectedProject || empty($statusName)) {
+        if (! $this->selectedProject || empty($statusName)) {
             return 0;
         }
 
@@ -222,7 +233,7 @@ class TicketTimeline extends Page implements HasForms
 
             $currentStatus = $statuses->firstWhere('name', $statusName);
 
-            if (!$currentStatus) {
+            if (! $currentStatus) {
                 return 0;
             }
 
@@ -239,7 +250,8 @@ class TicketTimeline extends Page implements HasForms
 
             return (int) round(max(0, min(100, $progress)));
         } catch (Exception $e) {
-            Log::error('Error calculating progress: ' . $e->getMessage());
+            Log::error('Error calculating progress: '.$e->getMessage());
+
             return 0;
         }
     }

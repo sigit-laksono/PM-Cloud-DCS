@@ -20,7 +20,7 @@ beforeEach(function () {
     // Create all customer permissions
     $actions = ['view', 'view_any', 'create', 'update', 'delete'];
     foreach ($actions as $action) {
-        Permission::firstOrCreate(['name' => $action . '_customer', 'guard_name' => 'web']);
+        Permission::firstOrCreate(['name' => $action.'_customer', 'guard_name' => 'web']);
     }
 });
 
@@ -42,7 +42,7 @@ it('authorizes actions if and only if user has the corresponding permission', fu
         );
 
         $user = User::factory()->create();
-        $role = Role::firstOrCreate(['name' => 'test_role_' . $i, 'guard_name' => 'web']);
+        $role = Role::firstOrCreate(['name' => 'test_role_'.$i, 'guard_name' => 'web']);
         $role->syncPermissions($grantedPermissions);
         $user->assignRole($role);
 
@@ -60,7 +60,7 @@ it('authorizes actions if and only if user has the corresponding permission', fu
             }
 
             // Property: authorization result must match permission assignment
-            expect($result)->toBe($hasPermission, "Failed for permission '{$permission}' (granted: " . ($hasPermission ? 'yes' : 'no') . ")");
+            expect($result)->toBe($hasPermission, "Failed for permission '{$permission}' (granted: ".($hasPermission ? 'yes' : 'no').')');
         }
     }
 });

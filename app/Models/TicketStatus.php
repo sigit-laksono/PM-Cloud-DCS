@@ -16,7 +16,7 @@ class TicketStatus extends Model
         'name',
         'sort_order',
         'color',
-        'is_completed'
+        'is_completed',
     ];
 
     protected $casts = [

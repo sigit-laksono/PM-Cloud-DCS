@@ -2,31 +2,30 @@
 
 namespace App\Imports;
 
-use PhpOffice\PhpSpreadsheet\Shared\Date;
-use Exception;
-use App\Models\Ticket;
-use App\Models\Project;
-use App\Models\User;
-use App\Models\TicketStatus;
-use App\Models\TicketPriority;
 use App\Models\Epic;
+use App\Models\Project;
+use App\Models\Ticket;
+use App\Models\TicketPriority;
+use App\Models\User;
+use Carbon\Carbon;
+use Exception;
+use Illuminate\Validation\Rule;
+use Maatwebsite\Excel\Concerns\Importable;
+use Maatwebsite\Excel\Concerns\SkipsErrors;
+use Maatwebsite\Excel\Concerns\SkipsFailures;
+use Maatwebsite\Excel\Concerns\SkipsOnError;
+use Maatwebsite\Excel\Concerns\SkipsOnFailure;
 use Maatwebsite\Excel\Concerns\ToModel;
 use Maatwebsite\Excel\Concerns\WithHeadingRow;
 use Maatwebsite\Excel\Concerns\WithValidation;
-use Maatwebsite\Excel\Concerns\Importable;
-use Maatwebsite\Excel\Concerns\SkipsErrors;
-use Maatwebsite\Excel\Concerns\SkipsOnError;
-use Maatwebsite\Excel\Concerns\SkipsFailures;
-use Maatwebsite\Excel\Concerns\SkipsOnFailure;
-use Illuminate\Support\Collection;
-use Illuminate\Validation\Rule;
-use Carbon\Carbon;
+use PhpOffice\PhpSpreadsheet\Shared\Date;
 
-class TicketsImport implements ToModel, WithHeadingRow, WithValidation, SkipsOnError, SkipsOnFailure
+class TicketsImport implements SkipsOnError, SkipsOnFailure, ToModel, WithHeadingRow, WithValidation
 {
     use Importable, SkipsErrors, SkipsFailures;
 
     protected $project;
+
     protected $importedCount = 0;
 
     public function __construct(Project $project)
@@ -42,7 +41,7 @@ class TicketsImport implements ToModel, WithHeadingRow, WithValidation, SkipsOnE
         }
 
         // Skip sample data rows (but allow real tickets with similar names)
-        if (trim($row['title']) === 'Sample Ticket Title' && 
+        if (trim($row['title']) === 'Sample Ticket Title' &&
             trim($row['description'] ?? '') === 'Sample description for the ticket') {
             return null;
         }
@@ -52,30 +51,30 @@ class TicketsImport implements ToModel, WithHeadingRow, WithValidation, SkipsOnE
             ->where('name', trim($row['status']))
             ->first();
 
-        if (!$status) {
+        if (! $status) {
             // Instead of throwing exception, skip this row
             return null;
         }
 
         // Find priority (optional)
         $priority = null;
-        if (!empty($row['priority']) && trim($row['priority']) !== '') {
+        if (! empty($row['priority']) && trim($row['priority']) !== '') {
             $priority = TicketPriority::where('name', trim($row['priority']))->first();
         }
 
         // Find epic (optional)
         $epic = null;
-        if (!empty($row['epic']) && trim($row['epic']) !== '') {
+        if (! empty($row['epic']) && trim($row['epic']) !== '') {
             $epic = $this->project->epics()->where('name', trim($row['epic']))->first();
         }
 
         // Parse due date
         $dueDate = null;
-        if (!empty($row['due_date_yyyy_mm_dd']) && trim($row['due_date_yyyy_mm_dd']) !== '') {
+        if (! empty($row['due_date_yyyy_mm_dd']) && trim($row['due_date_yyyy_mm_dd']) !== '') {
             try {
                 // Try multiple date formats
                 $dateString = trim($row['due_date_yyyy_mm_dd']);
-                
+
                 // Handle Excel serial numbers (numeric dates)
                 if (is_numeric($dateString)) {
                     $dueDate = Carbon::createFromFormat('Y-m-d', Date::excelToDateTimeObject($dateString)->format('Y-m-d'));
@@ -90,9 +89,9 @@ class TicketsImport implements ToModel, WithHeadingRow, WithValidation, SkipsOnE
                             continue;
                         }
                     }
-                    
+
                     // If no format worked, try Carbon's flexible parsing
-                    if (!$dueDate) {
+                    if (! $dueDate) {
                         $dueDate = Carbon::parse($dateString);
                     }
                 }
@@ -100,13 +99,13 @@ class TicketsImport implements ToModel, WithHeadingRow, WithValidation, SkipsOnE
                 // Invalid date format, leave as null
             }
         }
-        
+
         // Parse start date (same logic)
         $startDate = null;
-        if (!empty($row['start_date_yyyy_mm_dd']) && trim($row['start_date_yyyy_mm_dd']) !== '') {
+        if (! empty($row['start_date_yyyy_mm_dd']) && trim($row['start_date_yyyy_mm_dd']) !== '') {
             try {
                 $dateString = trim($row['start_date_yyyy_mm_dd']);
-                
+
                 if (is_numeric($dateString)) {
                     $startDate = Carbon::createFromFormat('Y-m-d', Date::excelToDateTimeObject($dateString)->format('Y-m-d'));
                 } else {
@@ -119,8 +118,8 @@ class TicketsImport implements ToModel, WithHeadingRow, WithValidation, SkipsOnE
                             continue;
                         }
                     }
-                    
-                    if (!$startDate) {
+
+                    if (! $startDate) {
                         $startDate = Carbon::parse($dateString);
                     }
                 }
@@ -143,12 +142,12 @@ class TicketsImport implements ToModel, WithHeadingRow, WithValidation, SkipsOnE
         ]);
 
         // Assign users if provided
-        if (!empty($row['assignees_comma_separated_emails']) && trim($row['assignees_comma_separated_emails']) !== '') {
+        if (! empty($row['assignees_comma_separated_emails']) && trim($row['assignees_comma_separated_emails']) !== '') {
             $emails = array_map('trim', explode(',', $row['assignees_comma_separated_emails']));
             $userIds = [];
 
             foreach ($emails as $email) {
-                if (!empty($email) && filter_var($email, FILTER_VALIDATE_EMAIL)) {
+                if (! empty($email) && filter_var($email, FILTER_VALIDATE_EMAIL)) {
                     $user = User::where('email', $email)->first();
                     if ($user && $this->project->members()->where('user_id', $user->id)->exists()) {
                         $userIds[] = $user->id;
@@ -156,12 +155,13 @@ class TicketsImport implements ToModel, WithHeadingRow, WithValidation, SkipsOnE
                 }
             }
 
-            if (!empty($userIds)) {
+            if (! empty($userIds)) {
                 $ticket->assignees()->sync($userIds);
             }
         }
 
         $this->importedCount++;
+
         return $ticket;
     }
 
@@ -173,13 +173,13 @@ class TicketsImport implements ToModel, WithHeadingRow, WithValidation, SkipsOnE
             'status' => [
                 'required',
                 'string',
-                Rule::exists('ticket_statuses', 'name')->where('project_id', $this->project->id)
+                Rule::exists('ticket_statuses', 'name')->where('project_id', $this->project->id),
             ],
             'priority' => 'nullable|string|exists:ticket_priorities,name',
             'epic' => [
                 'nullable',
                 'string',
-                Rule::exists('epics', 'name')->where('project_id', $this->project->id)
+                Rule::exists('epics', 'name')->where('project_id', $this->project->id),
             ],
             'assignees_comma_separated_emails' => 'nullable|string',
             // More flexible date validation - accepts various date formats

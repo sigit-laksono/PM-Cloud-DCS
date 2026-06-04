@@ -2,8 +2,8 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Notification extends Model
@@ -11,15 +11,15 @@ class Notification extends Model
     protected $fillable = [
         'user_id',
         'type',
-        'title', 
+        'title',
         'message',
         'data',
-        'read_at'
+        'read_at',
     ];
 
     protected $casts = [
         'data' => 'array',
-        'read_at' => 'datetime'
+        'read_at' => 'datetime',
     ];
 
     public function scopeUnread(Builder $query): Builder
@@ -34,7 +34,7 @@ class Notification extends Model
 
     public function isRead(): bool
     {
-        return !is_null($this->read_at);
+        return ! is_null($this->read_at);
     }
 
     public function isUnread(): bool
@@ -45,6 +45,7 @@ class Notification extends Model
     public function markAsRead(): bool
     {
         $this->read_at = now();
+
         return $this->save();
     }
 
@@ -63,18 +64,21 @@ class Notification extends Model
         if (isset($this->data['ticket_id'])) {
             return Ticket::with('project')->find($this->data['ticket_id']);
         }
+
         return null;
     }
 
     public function getTicketNameAttribute()
     {
         $ticket = $this->getTicketAttribute();
+
         return $ticket ? $ticket->name : null;
     }
 
     public function getProjectNameAttribute()
     {
         $ticket = $this->getTicketAttribute();
+
         return $ticket && $ticket->project ? $ticket->project->name : null;
     }
 }

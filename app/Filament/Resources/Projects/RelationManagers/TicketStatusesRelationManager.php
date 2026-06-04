@@ -2,25 +2,23 @@
 
 namespace App\Filament\Resources\Projects\RelationManagers;
 
-use Filament\Schemas\Schema;
-use Filament\Forms\Components\TextInput;
+use App\Models\TicketStatus;
+use Filament\Actions\BulkActionGroup;
+use Filament\Actions\CreateAction;
+use Filament\Actions\DeleteAction;
+use Filament\Actions\DeleteBulkAction;
+use Filament\Actions\EditAction;
 use Filament\Forms\Components\ColorPicker;
+use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
-use Filament\Tables\Columns\TextColumn;
+use Filament\Notifications\Notification;
+use Filament\Resources\RelationManagers\RelationManager;
+use Filament\Schemas\Schema;
 use Filament\Tables\Columns\ColorColumn;
 use Filament\Tables\Columns\IconColumn;
-use Filament\Actions\CreateAction;
-use Filament\Actions\EditAction;
-use Filament\Actions\DeleteAction;
-use Filament\Actions\BulkActionGroup;
-use Filament\Actions\DeleteBulkAction;
-use Filament\Forms;
-use Filament\Resources\RelationManagers\RelationManager;
-use Filament\Tables;
+use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Model;
-use App\Models\TicketStatus;
-use Filament\Notifications\Notification;
 
 class TicketStatusesRelationManager extends RelationManager
 {
@@ -57,9 +55,9 @@ class TicketStatusesRelationManager extends RelationManager
                             $projectId = $this->getOwnerRecord()->id;
                             $existingCompleted = TicketStatus::where('project_id', $projectId)
                                 ->where('is_completed', true)
-                                ->when($record, fn($query) => $query->where('id', '!=', $record->id))
+                                ->when($record, fn ($query) => $query->where('id', '!=', $record->id))
                                 ->first();
-                            
+
                             if ($existingCompleted) {
                                 $set('is_completed', false);
                                 Notification::make()
@@ -99,14 +97,14 @@ class TicketStatusesRelationManager extends RelationManager
                     ->mutateDataUsing(function (array $data): array {
                         $maxOrder = $this->getRelationship()->max('sort_order') ?? -1;
                         $data['sort_order'] = $maxOrder + 1;
-                        
+
                         // Additional validation for is_completed
                         if ($data['is_completed'] ?? false) {
                             $projectId = $this->getOwnerRecord()->id;
                             $existingCompleted = TicketStatus::where('project_id', $projectId)
                                 ->where('is_completed', true)
                                 ->first();
-                            
+
                             if ($existingCompleted) {
                                 $data['is_completed'] = false;
                                 Notification::make()
@@ -116,7 +114,7 @@ class TicketStatusesRelationManager extends RelationManager
                                     ->send();
                             }
                         }
-                        
+
                         return $data;
                     }),
             ])
@@ -130,7 +128,7 @@ class TicketStatusesRelationManager extends RelationManager
                                 ->where('is_completed', true)
                                 ->where('id', '!=', $record->id)
                                 ->first();
-                            
+
                             if ($existingCompleted) {
                                 $data['is_completed'] = false;
                                 Notification::make()
@@ -140,7 +138,7 @@ class TicketStatusesRelationManager extends RelationManager
                                     ->send();
                             }
                         }
-                        
+
                         return $data;
                     }),
                 DeleteAction::make(),

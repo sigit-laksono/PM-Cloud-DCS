@@ -2,6 +2,7 @@
 
 namespace App\Filament\Pages;
 
+use App\Enums\ProjectStatus;
 use App\Exports\TicketsExport;
 use App\Filament\Actions\ExportTicketsAction;
 use App\Filament\Resources\Tickets\TicketResource;
@@ -31,7 +32,7 @@ class ProjectBoard extends Page
 
     protected static string|\UnitEnum|null $navigationGroup = 'Project Management';
 
-    protected static ?int $navigationSort = 4;
+    protected static ?int $navigationSort = 6;
 
     public function getSubheading(): ?string
     {
@@ -60,13 +61,22 @@ class ProjectBoard extends Page
 
     public function mount($project_id = null): void
     {
+        $managedExcluded = [
+            ProjectStatus::Poc,
+            ProjectStatus::Running,
+            ProjectStatus::Completed,
+        ];
+
         if (auth()->user()->hasRole(['super_admin'])) {
-            $this->projects = Project::orderByRaw('pinned_date IS NULL')
+            $this->projects = Project::query()
+                ->whereIn('project_status', $managedExcluded)
+                ->orderByRaw('pinned_date IS NULL')
                 ->orderBy('pinned_date', 'desc')
                 ->orderBy('name')
                 ->get();
         } else {
             $this->projects = auth()->user()->projects()
+                ->whereIn('project_status', $managedExcluded)
                 ->orderByRaw('pinned_date IS NULL')
                 ->orderBy('pinned_date', 'desc')
                 ->orderBy('name')
@@ -218,7 +228,7 @@ class ProjectBoard extends Page
                 return $tickets->values();
             case 'date_created_oldest':
                 return $tickets->sortBy(function ($ticket) {
-                    return $ticket->created_at->timestamp . '_' . str_pad($ticket->id, 10, '0', STR_PAD_LEFT);
+                    return $ticket->created_at->timestamp.'_'.str_pad($ticket->id, 10, '0', STR_PAD_LEFT);
                 })->values();
             case 'card_name_alphabetical':
                 return $tickets->sortBy('name')->values();

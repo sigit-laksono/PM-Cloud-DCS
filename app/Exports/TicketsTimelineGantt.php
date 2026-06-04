@@ -7,7 +7,6 @@ use Carbon\Carbon;
 use Maatwebsite\Excel\Concerns\FromArray;
 use Maatwebsite\Excel\Concerns\ShouldAutoSize;
 use Maatwebsite\Excel\Concerns\WithColumnFormatting;
-use Maatwebsite\Excel\Concerns\WithCustomStartCell;
 use Maatwebsite\Excel\Concerns\WithEvents;
 use Maatwebsite\Excel\Concerns\WithHeadings;
 use Maatwebsite\Excel\Concerns\WithStyles;
@@ -18,13 +17,18 @@ use PhpOffice\PhpSpreadsheet\Style\Border;
 use PhpOffice\PhpSpreadsheet\Style\Fill;
 use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
 
-class TicketsTimelineGantt implements FromArray, WithHeadings, WithStyles, WithEvents, WithTitle, ShouldAutoSize, WithColumnFormatting
+class TicketsTimelineGantt implements FromArray, ShouldAutoSize, WithColumnFormatting, WithEvents, WithHeadings, WithStyles, WithTitle
 {
     protected $project;
+
     protected $ganttData;
+
     protected $dateRange;
+
     protected $totalDays;
+
     protected $startDate;
+
     protected $endDate;
 
     public function __construct(Project $project, array $ganttData)
@@ -41,6 +45,7 @@ class TicketsTimelineGantt implements FromArray, WithHeadings, WithStyles, WithE
             $this->endDate = Carbon::now()->addDays(30);
             $this->totalDays = 30;
             $this->dateRange = [];
+
             return;
         }
 
@@ -80,9 +85,9 @@ class TicketsTimelineGantt implements FromArray, WithHeadings, WithStyles, WithE
         $data = [];
 
         // Add project info rows
-        $data[] = [$this->project->name . ' - Gantt Chart Timeline'];
-        $data[] = ['Generated on: ' . Carbon::now()->format('F d, Y H:i')];
-        $data[] = ['Date Range: ' . $this->startDate->format('M d, Y') . ' - ' . $this->endDate->format('M d, Y')];
+        $data[] = [$this->project->name.' - Gantt Chart Timeline'];
+        $data[] = ['Generated on: '.Carbon::now()->format('F d, Y H:i')];
+        $data[] = ['Date Range: '.$this->startDate->format('M d, Y').' - '.$this->endDate->format('M d, Y')];
         $data[] = []; // Empty row
 
         // Add gantt data rows
@@ -134,15 +139,15 @@ class TicketsTimelineGantt implements FromArray, WithHeadings, WithStyles, WithE
             // Title styling
             1 => [
                 'font' => ['bold' => true, 'size' => 16],
-                'alignment' => ['horizontal' => Alignment::HORIZONTAL_LEFT]
+                'alignment' => ['horizontal' => Alignment::HORIZONTAL_LEFT],
             ],
             2 => [
                 'font' => ['size' => 12],
-                'alignment' => ['horizontal' => Alignment::HORIZONTAL_LEFT]
+                'alignment' => ['horizontal' => Alignment::HORIZONTAL_LEFT],
             ],
             3 => [
                 'font' => ['size' => 12],
-                'alignment' => ['horizontal' => Alignment::HORIZONTAL_LEFT]
+                'alignment' => ['horizontal' => Alignment::HORIZONTAL_LEFT],
             ],
 
             // Header row styling
@@ -151,8 +156,8 @@ class TicketsTimelineGantt implements FromArray, WithHeadings, WithStyles, WithE
                 'fill' => ['fillType' => Fill::FILL_SOLID, 'color' => ['rgb' => '366092']],
                 'alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER],
                 'borders' => [
-                    'allBorders' => ['borderStyle' => Border::BORDER_THIN]
-                ]
+                    'allBorders' => ['borderStyle' => Border::BORDER_THIN],
+                ],
             ],
 
             // Task name column styling
@@ -160,16 +165,16 @@ class TicketsTimelineGantt implements FromArray, WithHeadings, WithStyles, WithE
                 'font' => ['bold' => true],
                 'alignment' => ['horizontal' => Alignment::HORIZONTAL_LEFT],
                 'borders' => [
-                    'allBorders' => ['borderStyle' => Border::BORDER_THIN]
-                ]
+                    'allBorders' => ['borderStyle' => Border::BORDER_THIN],
+                ],
             ],
 
             // Timeline area borders
             "B{$dataStartRow}:{$lastColumn}{$lastRow}" => [
                 'borders' => [
-                    'allBorders' => ['borderStyle' => Border::BORDER_THIN]
-                ]
-            ]
+                    'allBorders' => ['borderStyle' => Border::BORDER_THIN],
+                ],
+            ],
         ];
     }
 
@@ -204,15 +209,15 @@ class TicketsTimelineGantt implements FromArray, WithHeadings, WithStyles, WithE
             // Apply colors to timeline cells
             foreach ($this->dateRange as $dateIndex => $date) {
                 $column = chr(66 + $dateIndex); // B, C, D, etc.
-                $cell = $column . $currentRow;
+                $cell = $column.$currentRow;
 
                 if ($date->between($taskStart, $taskEnd)) {
                     // Apply status color as background
                     $sheet->getStyle($cell)->applyFromArray([
                         'fill' => [
                             'fillType' => Fill::FILL_SOLID,
-                            'color' => ['rgb' => $statusColor]
-                        ]
+                            'color' => ['rgb' => $statusColor],
+                        ],
                     ]);
 
                     // Clear the cell content (remove ■ character)
@@ -227,7 +232,7 @@ class TicketsTimelineGantt implements FromArray, WithHeadings, WithStyles, WithE
         $headerRow = 5;
         for ($i = 0; $i < count($this->dateRange); $i++) {
             $column = chr(66 + $i); // B, C, D, etc.
-            $cell = $column . $headerRow;
+            $cell = $column.$headerRow;
 
             $date = $this->dateRange[$i];
 
@@ -236,8 +241,8 @@ class TicketsTimelineGantt implements FromArray, WithHeadings, WithStyles, WithE
                 $sheet->getStyle($cell)->applyFromArray([
                     'fill' => [
                         'fillType' => Fill::FILL_SOLID,
-                        'color' => ['rgb' => 'F3F4F6']
-                    ]
+                        'color' => ['rgb' => 'F3F4F6'],
+                    ],
                 ]);
             }
 
@@ -245,8 +250,8 @@ class TicketsTimelineGantt implements FromArray, WithHeadings, WithStyles, WithE
             if ($date->day === 1) {
                 $sheet->getStyle($cell)->applyFromArray([
                     'borders' => [
-                        'left' => ['borderStyle' => Border::BORDER_THICK, 'color' => ['rgb' => '1F2937']]
-                    ]
+                        'left' => ['borderStyle' => Border::BORDER_THICK, 'color' => ['rgb' => '1F2937']],
+                    ],
                 ]);
             }
         }
@@ -264,9 +269,9 @@ class TicketsTimelineGantt implements FromArray, WithHeadings, WithStyles, WithE
             $statuses[$status['name']] = $status['color'] ?? '#3B82F6';
         }
 
-        $sheet->setCellValue('A' . $startRow, 'Legend:');
-        $sheet->getStyle('A' . $startRow)->applyFromArray([
-            'font' => ['bold' => true, 'size' => 12]
+        $sheet->setCellValue('A'.$startRow, 'Legend:');
+        $sheet->getStyle('A'.$startRow)->applyFromArray([
+            'font' => ['bold' => true, 'size' => 12],
         ]);
 
         $legendRow = $startRow + 1;
@@ -276,24 +281,24 @@ class TicketsTimelineGantt implements FromArray, WithHeadings, WithStyles, WithE
             $column = chr(65 + $col); // A, B, C, etc.
 
             // Status color cell
-            $colorCell = $column . $legendRow;
+            $colorCell = $column.$legendRow;
             $sheet->setCellValue($colorCell, '   ');
             $sheet->getStyle($colorCell)->applyFromArray([
                 'fill' => [
                     'fillType' => Fill::FILL_SOLID,
-                    'color' => ['rgb' => ltrim($color, '#')]
+                    'color' => ['rgb' => ltrim($color, '#')],
                 ],
                 'borders' => [
-                    'allBorders' => ['borderStyle' => Border::BORDER_THIN]
-                ]
+                    'allBorders' => ['borderStyle' => Border::BORDER_THIN],
+                ],
             ]);
 
             // Status name cell
             $nameColumn = chr(65 + $col + 1);
-            $nameCell = $nameColumn . $legendRow;
+            $nameCell = $nameColumn.$legendRow;
             $sheet->setCellValue($nameCell, $statusName);
             $sheet->getStyle($nameCell)->applyFromArray([
-                'alignment' => ['horizontal' => Alignment::HORIZONTAL_LEFT]
+                'alignment' => ['horizontal' => Alignment::HORIZONTAL_LEFT],
             ]);
 
             $col += 3; // Space between legend items

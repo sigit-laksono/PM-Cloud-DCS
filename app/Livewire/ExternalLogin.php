@@ -3,20 +3,22 @@
 namespace App\Livewire;
 
 use App\Models\ExternalAccess;
-use Livewire\Component;
 use Illuminate\Support\Facades\Session;
+use Livewire\Component;
 
 class ExternalLogin extends Component
 {
     public $token;
+
     public $password;
+
     public $error;
 
     public function mount($token)
     {
         $this->token = $token;
-        
-        if (Session::get('external_authenticated_' . $token)) {
+
+        if (Session::get('external_authenticated_'.$token)) {
             return redirect()->route('external.dashboard', $token);
         }
 
@@ -24,7 +26,7 @@ class ExternalLogin extends Component
             ->where('is_active', true)
             ->first();
 
-        if (!$externalAccess) {
+        if (! $externalAccess) {
             abort(404, 'External access not found');
         }
     }
@@ -37,13 +39,14 @@ class ExternalLogin extends Component
     public function login()
     {
         $this->error = null;
-        
+
         $externalAccess = ExternalAccess::where('access_token', $this->token)
             ->where('is_active', true)
             ->first();
 
-        if (!$externalAccess || $externalAccess->password !== $this->password) {
+        if (! $externalAccess || $externalAccess->password !== $this->password) {
             $this->error = 'Invalid password';
+
             return;
         }
 
@@ -52,9 +55,9 @@ class ExternalLogin extends Component
         // Set session
         Session::put([
             'external_project_id' => $externalAccess->project_id,
-            'external_authenticated' => true
+            'external_authenticated' => true,
         ]);
-        Session::put('external_authenticated_' . $this->token, true);
+        Session::put('external_authenticated_'.$this->token, true);
 
         return redirect()->route('external.dashboard', $this->token);
     }

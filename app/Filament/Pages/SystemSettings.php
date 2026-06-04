@@ -2,30 +2,31 @@
 
 namespace App\Filament\Pages;
 
-use Filament\Forms\Components\Radio;
-use Filament\Schemas\Components\Section;
-use Filament\Forms\Components\Select;
-use Filament\Notifications\Notification;
-use Filament\Pages\Page;
-use Filament\Forms\Contracts\HasForms;
-use Filament\Forms\Concerns\InteractsWithForms;
-use Filament\Schemas\Schema;
-use BackedEnum;
-use UnitEnum;
-use Filament\Support\Icons\Heroicon;
-use Filament\Support\Colors\Color;
-use Filament\Support\Facades\FilamentColor;
-use Filament\Actions\Action;
 use App\Models\Setting;
 use App\Support\ColorPalette;
+use BackedEnum;
+use Filament\Forms\Components\Radio;
+use Filament\Forms\Components\Select;
+use Filament\Forms\Concerns\InteractsWithForms;
+use Filament\Forms\Contracts\HasForms;
+use Filament\Notifications\Notification;
+use Filament\Pages\Page;
+use Filament\Schemas\Components\Section;
+use Filament\Schemas\Schema;
+use Filament\Support\Facades\FilamentColor;
+use Filament\Support\Icons\Heroicon;
+use UnitEnum;
 
 class SystemSettings extends Page implements HasForms
 {
     use InteractsWithForms;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::Cog6Tooth;
-    protected static string | UnitEnum | null $navigationGroup = 'Settings';
+
+    protected static string|UnitEnum|null $navigationGroup = 'Settings';
+
     protected static ?string $title = 'UI Settings';
+
     protected string $view = 'filament.pages.system-settings';
 
     public ?array $data = [];

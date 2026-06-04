@@ -17,7 +17,7 @@ return new class extends Migration
             $table->json('data')->nullable(); // Additional data like ticket_id, comment_id
             $table->timestamp('read_at')->nullable();
             $table->timestamps();
-            
+
             $table->index(['user_id', 'read_at']);
         });
     }

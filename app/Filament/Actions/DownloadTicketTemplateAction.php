@@ -39,16 +39,16 @@ class DownloadTicketTemplateAction
             ])
             ->action(function (array $data): BinaryFileResponse {
                 $project = Project::findOrFail($data['project_id']);
-                
-                $filename = 'ticket-import-template-' . $project->name . '-' . now()->format('Y-m-d') . '.xlsx';
+
+                $filename = 'ticket-import-template-'.$project->name.'-'.now()->format('Y-m-d').'.xlsx';
                 $filename = preg_replace('/[^A-Za-z0-9\\-_.]/', '', $filename);
-                
+
                 Notification::make()
                     ->title('Template Downloaded')
                     ->body("Import template for project '{$project->name}' has been downloaded.")
                     ->success()
                     ->send();
-                
+
                 return Excel::download(new TicketTemplateExport($project), $filename);
             });
     }

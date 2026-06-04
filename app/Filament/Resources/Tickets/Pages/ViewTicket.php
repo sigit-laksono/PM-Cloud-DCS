@@ -40,7 +40,7 @@ class ViewTicket extends ViewRecord
             ->fillForm(function (array $arguments): array {
                 $comment = TicketComment::find($arguments['commentId']);
 
-                if (!$comment) {
+                if (! $comment) {
                     return [];
                 }
 
@@ -52,7 +52,7 @@ class ViewTicket extends ViewRecord
             ->action(function (array $data): void {
                 $comment = TicketComment::find($data['comment_id']);
 
-                if (!$comment) {
+                if (! $comment) {
                     Notification::make()
                         ->title('Comment not found')
                         ->danger()
@@ -61,7 +61,7 @@ class ViewTicket extends ViewRecord
                     return;
                 }
 
-                if ($comment->user_id !== auth()->id() && !auth()->user()->hasRole(['super_admin'])) {
+                if ($comment->user_id !== auth()->id() && ! auth()->user()->hasRole(['super_admin'])) {
                     Notification::make()
                         ->title('You do not have permission to edit this comment')
                         ->danger()
@@ -98,7 +98,7 @@ class ViewTicket extends ViewRecord
             ->action(function (array $arguments): void {
                 $comment = TicketComment::find($arguments['commentId']);
 
-                if (!$comment) {
+                if (! $comment) {
                     Notification::make()
                         ->title('Comment not found')
                         ->danger()
@@ -107,7 +107,7 @@ class ViewTicket extends ViewRecord
                     return;
                 }
 
-                if ($comment->user_id !== auth()->id() && !auth()->user()->hasRole(['super_admin'])) {
+                if ($comment->user_id !== auth()->id() && ! auth()->user()->hasRole(['super_admin'])) {
                     Notification::make()
                         ->title('You do not have permission to delete this comment')
                         ->danger()
@@ -134,8 +134,9 @@ class ViewTicket extends ViewRecord
 
         return preg_replace_callback($pattern, function ($matches) {
             $videoUrl = $matches[1];
+
             return '<video controls class="max-w-full rounded-lg my-2" style="max-height: 400px;">
-                    <source src="' . $videoUrl . '" type="video/' . pathinfo($videoUrl, PATHINFO_EXTENSION) . '">
+                    <source src="'.$videoUrl.'" type="video/'.pathinfo($videoUrl, PATHINFO_EXTENSION).'">
                     Your browser does not support the video tag.
                 </video>';
         }, $html);
@@ -156,7 +157,7 @@ class ViewTicket extends ViewRecord
             Action::make('back')
                 ->label('Back to Board')
                 ->color('gray')
-                ->url(fn() => ProjectBoard::getUrl(['project_id' => $this->record->project_id])),
+                ->url(fn () => ProjectBoard::getUrl(['project_id' => $this->record->project_id])),
         ];
     }
 
@@ -219,7 +220,7 @@ class ViewTicket extends ViewRecord
                                     ->label('Due Date')
                                     ->date('d M Y')
                                     ->icon('heroicon-o-calendar')
-                                    ->color(fn($record) => $record->due_date && $record->due_date->isPast() ? 'danger' : 'success'),
+                                    ->color(fn ($record) => $record->due_date && $record->due_date->isPast() ? 'danger' : 'success'),
                             ]),
                     ]),
 

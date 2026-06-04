@@ -19,7 +19,7 @@ return new class extends Migration
             $table->longText('content');
             $table->date('note_date');
             $table->timestamps();
-            
+
             $table->index(['project_id', 'note_date']);
         });
     }

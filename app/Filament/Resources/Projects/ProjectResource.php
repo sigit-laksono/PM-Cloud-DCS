@@ -2,53 +2,48 @@
 
 namespace App\Filament\Resources\Projects;
 
-use Filament\Schemas\Schema;
-use Filament\Forms\Components\Select;
-use Filament\Forms\Components\TextInput;
-use Filament\Forms\Components\RichEditor;
-use Filament\Forms\Components\DatePicker;
-use Filament\Forms\Components\Toggle;
-use Filament\Forms\Components\ColorPicker;
+use App\Enums\ProjectStatus;
+use App\Filament\Actions\PromoteToManagedAction;
+use App\Filament\Resources\ProjectResource\Pages;
 use App\Filament\Resources\Projects\Pages\CreateProject;
-use Filament\Forms\Components\DateTimePicker;
-use Filament\Tables\Columns\TextColumn;
-use Filament\Tables\Columns\ToggleColumn;
-use Filament\Tables\Columns\ColorColumn;
-use Filament\Tables\Filters\SelectFilter;
-use Filament\Actions\ViewAction;
-use Filament\Actions\EditAction;
-use Filament\Actions\BulkActionGroup;
-use Filament\Actions\DeleteBulkAction;
-use App\Filament\Resources\Projects\RelationManagers\TicketStatusesRelationManager;
-use App\Filament\Resources\Projects\RelationManagers\MembersRelationManager;
-use App\Filament\Resources\Projects\RelationManagers\EpicsRelationManager;
-use App\Filament\Resources\Projects\RelationManagers\TicketsRelationManager;
-use App\Filament\Resources\Projects\RelationManagers\NotesRelationManager;
+use App\Filament\Resources\Projects\Pages\EditProject;
 use App\Filament\Resources\Projects\Pages\ListProjects;
 use App\Filament\Resources\Projects\Pages\ViewProject;
-use App\Filament\Resources\Projects\Pages\EditProject;
-use App\Filament\Actions\ImportTicketsAction;
-use App\Enums\ProjectStatus;
-use App\Filament\Resources\ProjectResource\Pages;
-use App\Filament\Resources\ProjectResource\RelationManagers;
+use App\Filament\Resources\Projects\RelationManagers\EpicsRelationManager;
+use App\Filament\Resources\Projects\RelationManagers\MembersRelationManager;
+use App\Filament\Resources\Projects\RelationManagers\NotesRelationManager;
+use App\Filament\Resources\Projects\RelationManagers\TicketsRelationManager;
+use App\Filament\Resources\Projects\RelationManagers\TicketStatusesRelationManager;
 use App\Models\Project;
-use Filament\Forms;
+use Filament\Actions\BulkActionGroup;
+use Filament\Actions\DeleteBulkAction;
+use Filament\Actions\EditAction;
+use Filament\Actions\ViewAction;
+use Filament\Forms\Components\ColorPicker;
+use Filament\Forms\Components\DatePicker;
+use Filament\Forms\Components\DateTimePicker;
+use Filament\Forms\Components\RichEditor;
+use Filament\Forms\Components\Select;
+use Filament\Forms\Components\TextInput;
+use Filament\Forms\Components\Toggle;
 use Filament\Resources\Resource;
-use Filament\Tables;
+use Filament\Schemas\Schema;
+use Filament\Tables\Columns\ColorColumn;
+use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Columns\ToggleColumn;
+use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
-use Filament\Actions\Action;
-use Filament\Notifications\Notification;
-use Illuminate\Support\Facades\Log;
 use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Database\Eloquent\SoftDeletingScope;
 
 class ProjectResource extends Resource
 {
     protected static ?string $model = Project::class;
 
     protected static string|\BackedEnum|null $navigationIcon = 'heroicon-o-rectangle-stack';
+
     protected static string|\UnitEnum|null $navigationGroup = 'Project Management';
-    protected static ?int $navigationSort = 1;
+
+    protected static ?int $navigationSort = 3;
 
     public static function form(Schema $schema): Schema
     {
@@ -59,11 +54,22 @@ class ProjectResource extends Resource
                     ->searchable()
                     ->nullable()
                     ->preload(),
+                Select::make('pic_user_id')
+                    ->label('PIC (Person in Charge)')
+                    ->relationship('pic', 'name')
+                    ->searchable()
+                    ->nullable()
+                    ->preload()
+                    ->helperText('Main responsible person for this project'),
                 TextInput::make('name')
                     ->required()
                     ->maxLength(255),
                 Select::make('project_status')
-                    ->options(ProjectStatus::class)
+                    ->options(
+                        collect(ProjectStatus::cases())
+                            ->reject(fn ($case) => $case === ProjectStatus::Managed)
+                            ->mapWithKeys(fn ($case) => [$case->value => $case->getLabel()])
+                    )
                     ->default(ProjectStatus::Running->value)
                     ->required(),
                 RichEditor::make('description')
@@ -93,7 +99,7 @@ class ProjectResource extends Resource
                     ->helperText('Create standard Backlog, To Do, In Progress, Review, and Done statuses automatically')
                     ->default(true)
                     ->dehydrated(false)
-                    ->visible(fn($livewire) => $livewire instanceof CreateProject),
+                    ->visible(fn ($livewire) => $livewire instanceof CreateProject),
 
                 Toggle::make('is_pinned')
                     ->label('Pin Project')
@@ -108,13 +114,13 @@ class ProjectResource extends Resource
                     })
                     ->dehydrated(false)
                     ->afterStateHydrated(function ($component, $state, $get) {
-                        $component->state(!is_null($get('pinned_date')));
+                        $component->state(! is_null($get('pinned_date')));
                     }),
                 DateTimePicker::make('pinned_date')
                     ->label('Pinned Date')
                     ->native(false)
                     ->displayFormat('d/m/Y H:i')
-                    ->visible(fn($get) => $get('is_pinned'))
+                    ->visible(fn ($get) => $get('is_pinned'))
                     ->dehydrated(true),
             ]);
     }
@@ -130,6 +136,10 @@ class ProjectResource extends Resource
                 TextColumn::make('customer.name')
                     ->label('Customer')
                     ->searchable(),
+                TextColumn::make('pic.name')
+                    ->label('PIC')
+                    ->searchable()
+                    ->placeholder('—'),
                 TextColumn::make('name')
                     ->searchable(),
                 TextColumn::make('project_status')
@@ -140,12 +150,11 @@ class ProjectResource extends Resource
                 TextColumn::make('progress_percentage')
                     ->label('Progress')
                     ->getStateUsing(function (Project $record): string {
-                        return $record->progress_percentage . '%';
+                        return $record->progress_percentage.'%';
                     })
                     ->badge()
                     ->color(
-                        fn(Project $record): string =>
-                        $record->progress_percentage >= 100 ? 'success' :
+                        fn (Project $record): string => $record->progress_percentage >= 100 ? 'success' :
                         ($record->progress_percentage >= 75 ? 'info' :
                             ($record->progress_percentage >= 50 ? 'warning' :
                                 ($record->progress_percentage >= 25 ? 'gray' : 'danger')))
@@ -160,16 +169,15 @@ class ProjectResource extends Resource
                 TextColumn::make('remaining_days')
                     ->label('Remaining Days')
                     ->getStateUsing(function (Project $record): ?string {
-                        if (!$record->end_date) {
+                        if (! $record->end_date) {
                             return null;
                         }
 
-                        return $record->remaining_days . ' days';
+                        return $record->remaining_days.' days';
                     })
                     ->badge()
                     ->color(
-                        fn(Project $record): string =>
-                        !$record->end_date ? 'gray' :
+                        fn (Project $record): string => ! $record->end_date ? 'gray' :
                         ($record->remaining_days <= 0 ? 'danger' :
                             ($record->remaining_days <= 7 ? 'warning' : 'success'))
                     ),
@@ -182,6 +190,7 @@ class ProjectResource extends Resource
                         } else {
                             $record->unpin();
                         }
+
                         return $state;
                     }),
                 TextColumn::make('members_count')
@@ -202,16 +211,19 @@ class ProjectResource extends Resource
             ->filters([
                 SelectFilter::make('project_status')
                     ->options(ProjectStatus::class)
-                    ->label('Project Status'),
+                    ->label('Project Status')
+                    ->multiple(),
                 SelectFilter::make('customer_id')
                     ->relationship('customer', 'name')
                     ->label('Customer')
                     ->searchable()
-                    ->preload(),
+                    ->preload()
+                    ->multiple(),
             ])
             ->recordActions([
                 ViewAction::make(),
-                EditAction::make()
+                EditAction::make(),
+                PromoteToManagedAction::make(),
             ])
             ->toolbarActions([
                 BulkActionGroup::make([
@@ -244,14 +256,19 @@ class ProjectResource extends Resource
 
     public static function getEloquentQuery(): Builder
     {
-        $query = parent::getEloquentQuery();
+        $query = parent::getEloquentQuery()
+            ->whereIn('project_status', [
+                ProjectStatus::Poc,
+                ProjectStatus::Running,
+                ProjectStatus::Completed,
+            ]);
 
         $userIsSuperAdmin = auth()->user() && (
             (method_exists(auth()->user(), 'hasRole') && auth()->user()->hasRole('super_admin'))
             || (isset(auth()->user()->role) && auth()->user()->role === 'super_admin')
         );
 
-        if (!$userIsSuperAdmin) {
+        if (! $userIsSuperAdmin) {
             $query->whereHas('members', function (Builder $query) {
                 $query->where('user_id', auth()->id());
             });

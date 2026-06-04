@@ -2,15 +2,11 @@
 
 namespace App\Filament\Widgets;
 
-use App\Enums\ProjectStatus;
 use App\Models\Project;
 use App\Models\Ticket;
-use App\Models\User;
 use BezhanSalleh\FilamentShield\Traits\HasWidgetShield;
-use Carbon\Carbon;
 use Filament\Widgets\StatsOverviewWidget as BaseWidget;
 use Filament\Widgets\StatsOverviewWidget\Stat;
-use Illuminate\Support\Facades\DB;
 
 class StatsOverview extends BaseWidget
 {
@@ -18,146 +14,67 @@ class StatsOverview extends BaseWidget
 
     protected ?string $pollingInterval = '30s';
 
-    protected ?string $heading = 'Overview';
-
     protected function getStats(): array
     {
         $user = auth()->user();
         $isSuperAdmin = $user->hasRole('super_admin');
 
-        if ($isSuperAdmin) {
-            return $this->getSuperAdminStats();
-        } else {
-            return $this->getUserStats();
-        }
-    }
+        $projectIds = $isSuperAdmin
+            ? Project::pluck('id')
+            : $user->projects()->pluck('projects.id');
 
-    protected function getSuperAdminStats(): array
-    {
-        $totalProjects = Project::count();
-        $totalTickets = Ticket::count();
-        $usersCount = User::count();
-        $myTickets = DB::table('tickets')
-            ->join('ticket_users', 'tickets.id', '=', 'ticket_users.ticket_id')
-            ->where('ticket_users.user_id', auth()->id())
+        // Projects at Risk: ending ≤ 7 days (including already past end_date) with open tickets
+        $projectsAtRisk = Project::whereIn('id', $projectIds)
+            ->whereNotNull('end_date')
+            ->where('end_date', '<=', today()->addDays(7))
+            ->whereHas('tickets', fn ($q) => $q->whereHas('status', fn ($s) => $s->where('is_completed', false)))
             ->count();
-        $managedServices = Project::where('project_status', ProjectStatus::Managed)->count();
-        $activeProjects = Project::where('project_status', ProjectStatus::Running)->count();
+
+        // Overdue tickets: past due date, still open
+        $overdueTickets = Ticket::whereIn('project_id', $projectIds)
+            ->whereNotNull('due_date')
+            ->where('due_date', '<', today())
+            ->where(fn ($q) =>
+                $q->whereHas('status', fn ($s) => $s->where('is_completed', false))
+                  ->orWhereNull('ticket_status_id')
+            )
+            ->count();
+
+        // Completed this week
+        $completedThisWeek = Ticket::whereIn('project_id', $projectIds)
+            ->whereHas('status', fn ($q) => $q->where('is_completed', true))
+            ->where('updated_at', '>=', now()->subDays(7))
+            ->count();
+
+        // Open tickets with no assignee
+        $unassignedTickets = Ticket::whereIn('project_id', $projectIds)
+            ->where(fn ($q) =>
+                $q->whereHas('status', fn ($s) => $s->where('is_completed', false))
+                  ->orWhereNull('ticket_status_id')
+            )
+            ->doesntHave('assignees')
+            ->count();
 
         return [
-            Stat::make('Total Projects', $totalProjects)
-                ->description('Active projects in the system')
-                ->descriptionIcon('heroicon-m-rectangle-stack')
-                ->color('primary'),
-
-            Stat::make('Project Aktif', $activeProjects)
-                ->description('Projects currently running')
-                ->descriptionIcon('heroicon-m-play-circle')
-                ->color('info'),
-
-            Stat::make('Managed Services', $managedServices)
-                ->description('Ongoing managed services')
-                ->descriptionIcon('heroicon-m-cog-6-tooth')
-                ->color('primary'),
-
-            Stat::make('Total Tickets', $totalTickets)
-                ->description('Tickets across all projects')
-                ->descriptionIcon('heroicon-m-ticket')
-                ->color('success'),
-
-            Stat::make('My Assigned Tickets', $myTickets)
-                ->description('Tickets assigned to you')
-                ->descriptionIcon('heroicon-m-user-circle')
-                ->color('info'),
-
-            Stat::make('Team Members', $usersCount)
-                ->description('Registered users')
-                ->descriptionIcon('heroicon-m-users')
-                ->color('gray'),
-        ];
-    }
-
-    protected function getUserStats(): array
-    {
-        $user = auth()->user();
-        
-        $myProjects = $user->projects()->count();
-        
-        $myProjectIds = $user->projects()->pluck('projects.id')->toArray();
-
-        $projectTickets = Ticket::whereIn('project_id', $myProjectIds)->count();
-
-        $myAssignedTickets = DB::table('tickets')
-            ->join('ticket_users', 'tickets.id', '=', 'ticket_users.ticket_id')
-            ->where('ticket_users.user_id', $user->id)
-            ->count();
-
-        $myCreatedTickets = Ticket::where('created_by', $user->id)->count();
-
-        $newTicketsThisWeek = Ticket::whereIn('project_id', $myProjectIds)
-            ->where('tickets.created_at', '>=', Carbon::now()->subDays(7))
-            ->count();
-
-        $myOverdueTickets = DB::table('tickets')
-            ->join('ticket_users', 'tickets.id', '=', 'ticket_users.ticket_id')
-            ->join('ticket_statuses', 'tickets.ticket_status_id', '=', 'ticket_statuses.id')
-            ->where('ticket_users.user_id', $user->id)
-            ->where('tickets.due_date', '<', Carbon::now())
-            ->whereNotIn('ticket_statuses.name', ['Completed', 'Done', 'Closed'])
-            ->count();
-
-        $myCompletedThisWeek = DB::table('tickets')
-            ->join('ticket_users', 'tickets.id', '=', 'ticket_users.ticket_id')
-            ->join('ticket_statuses', 'tickets.ticket_status_id', '=', 'ticket_statuses.id')
-            ->where('ticket_users.user_id', $user->id)
-            ->whereIn('ticket_statuses.name', ['Completed', 'Done', 'Closed'])
-            ->where('tickets.updated_at', '>=', Carbon::now()->subDays(7))
-            ->count();
-
-        $teamMembers = User::whereHas('projects', function ($query) use ($myProjectIds) {
-            $query->whereIn('projects.id', $myProjectIds);
-        })->where('id', '!=', $user->id)->count();
-
-        return [
-            Stat::make('My Projects', $myProjects)
-                ->description('Projects you are member of')
-                ->descriptionIcon('heroicon-m-rectangle-stack')
-                ->color('primary'),
-
-            Stat::make('My Assigned Tickets', $myAssignedTickets)
-                ->description('Tickets assigned to you')
-                ->descriptionIcon('heroicon-m-user-circle')
-                ->color($myAssignedTickets > 10 ? 'danger' : ($myAssignedTickets > 5 ? 'warning' : 'success')),
-
-            Stat::make('My Created Tickets', $myCreatedTickets)
-                ->description('Tickets you created')
-                ->descriptionIcon('heroicon-m-pencil-square')
-                ->color('info'),
-
-            Stat::make('Project Tickets', $projectTickets)
-                ->description('Total tickets in your projects')
-                ->descriptionIcon('heroicon-m-ticket')
-                ->color('success'),
-
-            Stat::make('Completed This Week', $myCompletedThisWeek)
-                ->description('Your completed tickets')
-                ->descriptionIcon('heroicon-m-check-circle')
-                ->color($myCompletedThisWeek > 0 ? 'success' : 'gray'),
-
-            Stat::make('New Tasks This Week', $newTicketsThisWeek)
-                ->description('Created in your projects')
-                ->descriptionIcon('heroicon-m-plus-circle')
-                ->color('info'),
-
-            Stat::make('My Overdue Tasks', $myOverdueTickets)
-                ->description('Your past due tickets')
+            Stat::make('Projects at Risk', $projectsAtRisk)
+                ->description('Deadline ≤ 7 days with open tickets')
                 ->descriptionIcon('heroicon-m-exclamation-triangle')
-                ->color($myOverdueTickets > 0 ? 'danger' : 'success'),
+                ->color($projectsAtRisk > 0 ? 'danger' : 'success'),
 
-            Stat::make('Team Members', $teamMembers)
-                ->description('People in your projects')
-                ->descriptionIcon('heroicon-m-users')
-                ->color('gray'),
+            Stat::make('Overdue Tickets', $overdueTickets)
+                ->description('Past due date, not yet completed')
+                ->descriptionIcon('heroicon-m-clock')
+                ->color($overdueTickets > 0 ? 'danger' : 'success'),
+
+            Stat::make('Completed This Week', $completedThisWeek)
+                ->description('Tickets resolved in the last 7 days')
+                ->descriptionIcon('heroicon-m-check-circle')
+                ->color($completedThisWeek > 0 ? 'success' : 'gray'),
+
+            Stat::make('Unassigned Tickets', $unassignedTickets)
+                ->description('Open tickets with no assignee')
+                ->descriptionIcon('heroicon-m-user-minus')
+                ->color($unassignedTickets > 0 ? 'warning' : 'success'),
         ];
     }
 }

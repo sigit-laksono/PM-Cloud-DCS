@@ -2,9 +2,8 @@
 
 namespace App\Filament\Resources\Tickets\Pages;
 
-use Filament\Actions\CreateAction;
 use App\Filament\Resources\Tickets\TicketResource;
-use Filament\Actions;
+use Filament\Actions\CreateAction;
 use Filament\Resources\Pages\ListRecords;
 
 class ListTickets extends ListRecords

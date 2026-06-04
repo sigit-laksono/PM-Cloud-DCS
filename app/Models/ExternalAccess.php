@@ -31,12 +31,12 @@ class ExternalAccess extends Model
     {
         return $this->belongsTo(Project::class);
     }
-    
+
     public static function generateForProject($projectId): self
     {
         $accessToken = Str::random(32);
         $password = Str::random(8);
-    
+
         return self::create([
             'project_id' => $projectId,
             'access_token' => $accessToken,

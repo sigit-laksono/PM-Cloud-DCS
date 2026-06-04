@@ -2,13 +2,12 @@
 
 namespace App\Http\Middleware;
 
-use Closure;
-use Illuminate\Http\Request;
 use App\Models\Setting;
-use Filament\Support\Facades\FilamentColor;
-use Filament\Support\Colors\Color;
-use Filament\Facades\Filament;
 use App\Support\ColorPalette;
+use Closure;
+use Filament\Facades\Filament;
+use Filament\Support\Facades\FilamentColor;
+use Illuminate\Http\Request;
 
 class FilamentUserSettings
 {
@@ -16,7 +15,7 @@ class FilamentUserSettings
     {
         if (auth()->check()) {
             $userId = auth()->id();
-            
+
             $savedColor = $this->getSavedColor($userId);
             FilamentColor::register([
                 'primary' => $this->getColorConstant($savedColor),
@@ -41,9 +40,9 @@ class FilamentUserSettings
     {
         try {
             $navigationStyle = Setting::getUserValue('filament_navigation_style', 'sidebar', $userId);
-            
+
             $panel = Filament::getCurrentPanel();
-            
+
             if ($panel) {
                 if ($navigationStyle === 'top') {
                     $panel->topNavigation();
